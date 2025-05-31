@@ -32,13 +32,12 @@ app.prepare().then(async () => {
     clientId = await sckey.fetchKey();
     let query = "hardcore"
     let amount = "10"
-    //if (!query) return res.status(400).send('Missing query');
     let link = `https://api-v2.soundcloud.com/search?q=${query}&facet=model&user_id=6103-34204-861051-537219&client_id=${clientId}&limit=${amount}&offset=0&linked_partitioning=1&app_version=1748345262&app_locale=en`;
     let queryRes = await fetch(link)
     let queryData = await queryRes.json();
     let tracks = []
 
-    queryData.collection.forEach(track => {
+    queryData.collection.forEach(async track => {
       if (track.kind === "track" && track.monetization_model !== 'SUB_HIGH_TIER') {
         let newTrack = new Track(
           track.id,
@@ -121,7 +120,7 @@ app.prepare().then(async () => {
       let queryData = await queryRes.json();
       let tracks = []
       queryData.collection.forEach(track => {
-        if (track.kind === "track" && track.public === true) {
+        if (track.kind === "track" && track.monetization_model !== 'SUB_HIGH_TIER') {
           let newTrack = new Track(
             track.id,
             track.artwork_url,

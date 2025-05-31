@@ -58,7 +58,7 @@ export default function Home() {
       }
 
       setCurrentTrackId(trackId);
-      toast(`Now playing ${trackTitle}`);
+      toast(`Now playing ${trackTitle} (${trackId})`);
     };
 
     socket.on("playNow", handlePlayNow);
@@ -81,8 +81,8 @@ export default function Home() {
       <div className="pt-2 pb-8">
         <div className={`fixed top-0 right-0 transition-all m-3 w-1 h-1 rounded ${ConnectionColor}`}>
         </div>
-        <div className="flex justify-center place-items-center">
-          <div className="grid grid-cols-7 gap-5">
+        <div className="flex justify-center place-items-center ml-5 mr-5">
+          <div className="grid lg:grid-cols-7 md:grid-cols-5 grid-cols-2 gap-5">
             {items.map((item) => (
               <Track
                 key={item.id}

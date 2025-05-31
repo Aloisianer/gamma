@@ -252,17 +252,17 @@ const AudioPlayer = forwardRef(({ src }, ref) => {
       case 2:
         return {
           variant: "highlighted",
-          className: ""
+          className: "w-9 h-9"
         };
       case 3:
         return {
           variant: "highlighted",
-          className: ""
+          className: "w-9 h-9"
         };
       default:
         return {
           variant: "outline",
-          className: ""
+          className: "w-9 h-9"
         };
     }
   }, [mode]);
@@ -276,8 +276,8 @@ const AudioPlayer = forwardRef(({ src }, ref) => {
       <audio ref={audioRef} preload="auto" />
       
       <Button
+        className="w-9 h-9"
         variant="outline"
-        size="icon"
         onClick={handlePlayPause}
         disabled={!isSongLoaded}
       >
@@ -285,9 +285,9 @@ const AudioPlayer = forwardRef(({ src }, ref) => {
       </Button>
 
       <Button
+        className="w-9 h-9"
         ref={volumeButtonRef}
         variant="outline"
-        size="icon"
         onClick={handleToggleMute}
         disabled={!isSongLoaded}
         title={`Volume: ${displayVolume}%`}
