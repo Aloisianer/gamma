@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Track } from "@/components/track"
+import { Track } from "@/components/track";
 import {
     CommandDialog,
     CommandInput,
     CommandList,
     CommandEmpty,
+    CommandSeparator,
 } from "@/components/ui/command";
+import { Button } from "@/components/ui/button"
 
 function containsUsefulInfo(str) {
     return /[a-zA-Z0-9]/.test(str);
@@ -18,51 +20,96 @@ export function Search() {
     const [open, setOpen] = useState(false);
     const [results, setResults] = useState([]);
     const [query, setQuery] = useState('');
+    const [page, setPage] = useState(1);
     const router = useRouter();
+    const timerRef = useRef(null);
+    const abortControllerRef = useRef(null);
 
+    const resetState = useCallback(() => {
+        setQuery('');
+        setResults([]);
+        setPage(1);
+    }, []);
+
+    // Keyboard shortcut handler
     useEffect(() => {
-        const down = (e) => {
+        const handler = (e) => {
             if (e.key === "s" && e.ctrlKey) {
                 e.preventDefault();
-                setOpen((prevOpen) => !prevOpen);
+                setOpen(prev => !prev);
             }
         };
 
-        document.addEventListener("keydown", down);
-        return () => document.removeEventListener("keydown", down);
+        document.addEventListener("keydown", handler);
+        return () => document.removeEventListener("keydown", handler);
     }, []);
 
-    // Reset state when closing dialog
     useEffect(() => {
-        if (!open) {
-            setQuery('');
-            setResults([]);
-        }
-    }, [open]);
+        if (!open) resetState();
+    }, [open, resetState]);
 
-    // Debounced search
+    useEffect(() => {
+        // Reset page when query changes
+        setPage(1);
+    }, [query]);
+
     useEffect(() => {
         if (!containsUsefulInfo(query)) {
             setResults([]);
             return;
         }
 
-        const handler = setTimeout(() => {
-            fetch(`/api/search?query=${encodeURIComponent(query)}`)
-                .then((res) => res.json())
-                .then(setResults)
-                .catch(() => setResults([]));
+        // Clear previous timer and abort ongoing requests
+        if (timerRef.current) clearTimeout(timerRef.current);
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+
+        abortControllerRef.current = new AbortController();
+        const signal = abortControllerRef.current.signal;
+
+        timerRef.current = setTimeout(() => {
+            fetch(`/api/search?page=${page}&amount=8&query=${encodeURIComponent(query)}`, {
+                signal
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to fetch');
+                    return res.json();
+                })
+                .then(data => {
+                    if (!signal.aborted) {
+                        setResults(data.tracks || []);
+                    }
+                })
+                .catch(() => {
+                    if (!signal.aborted) {
+                        setResults([]);
+                    }
+                });
         }, 150);
 
-        return () => clearTimeout(handler);
-    }, [query]);
+        return () => {
+            if (timerRef.current) clearTimeout(timerRef.current);
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, [query, page]);
 
-    const handleEnter = (e) => {
+    const handleEnter = useCallback((e) => {
         if (e.key === "Enter" && containsUsefulInfo(query)) {
             router.push(`/search?query=${encodeURIComponent(query)}`);
             setOpen(false);
         }
-    };
+    }, [query, router]);
+
+    const loadNextPage = useCallback(() => {
+        setPage(prev => prev + 1);
+    }, []);
+
+    const loadPreviousPage = useCallback(() => {
+        setPage(prev => Math.max(1, prev - 1));
+    }, []);
 
     return (
         <CommandDialog open={open} onOpenChange={setOpen}>
@@ -74,17 +121,36 @@ export function Search() {
             />
             <CommandList>
                 {results.length > 0 ? (
-                    <div className="grid grid-cols-4 gap-3 p-3">
-                        {results.map((item) => (
-                            <Track
-                                key={item.id}
-                                id={item.id}
-                                artwork={item.artwork}
-                                title={item.title}
-                                creator={item.creator}
-                                variant="searchBox"
-                            />
-                        ))}
+                    <div>
+                        <div className="grid grid-cols-4 gap-3 p-3">
+                            {results.map((item) => (
+                                <Track
+                                    key={item.id}
+                                    id={item.id}
+                                    artwork={item.artwork}
+                                    title={item.title}
+                                    creator={item.creator}
+                                    variant="searchBox"
+                                />
+                            ))}
+                        </div>
+                        <div className="flex justify-center place-items-center gap-5 mb-6 mt-3">
+                            {page > 1 ? (
+                                <Button onClick={loadPreviousPage}>
+                                    Back
+                                </Button>
+                            ) : (
+                                <Button disabled>
+                                    Back
+                                </Button>
+                            )}
+                            <div className="px-4 py-2 bg-muted rounded-md">
+                                Page {page}
+                            </div>
+                            <Button onClick={loadNextPage}>
+                                Next
+                            </Button>
+                        </div>
                     </div>
                 ) : containsUsefulInfo(query) ? (
                     <CommandEmpty>No results found.</CommandEmpty>

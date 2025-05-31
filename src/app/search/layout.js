@@ -5,13 +5,13 @@ import { cookies } from "next/headers"
 import { Toaster } from "@/components/ui/sonner"
 
 export let metadata = {
-  title: "Website Name",
-  description: "Site Description",
+  title: "Sound",
+  description: "Open Source, SoundCloud API powered Music Player",
   openGraph: {
-    title: "Embed Title",
-    description: "Site Description",
+    title: "Sound",
+    description: "Open Source, SoundCloud API powered Music Player",
     url: "https://sound.hackrland.dev",
-    images: ["https://embed.com/embedimage.png"],
+    images: ["https://sound.hackrland.dev/embed.png"],
   }
 };
 

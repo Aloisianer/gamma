@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image";
-import { useEffect, useState, useRef, useMemo } from "react"; // Import useMemo
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Track } from "@/components/track"
 import { socket } from "@/socket";
 import * as Icon from "react-feather";

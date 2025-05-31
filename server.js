@@ -18,9 +18,11 @@ export let clientId;
 let app = next({ dev: true, turbopack: true })
 
 let handle = app.getRequestHandler()
+
 app.prepare().then(async () => {
   let server = express();
   let mainServer = createServer(server)
+  clientId = await sckey.fetchKey();
 
   let socket = new Server(mainServer, {
     cors: {
@@ -29,7 +31,6 @@ app.prepare().then(async () => {
   });
 
   socket.on('connection', async (socket) => {
-    clientId = await sckey.fetchKey();
     let query = "hardcore"
     let amount = "10"
     let link = `https://api-v2.soundcloud.com/search?q=${query}&facet=model&user_id=6103-34204-861051-537219&client_id=${clientId}&limit=${amount}&offset=0&linked_partitioning=1&app_version=1748345262&app_locale=en`;
@@ -113,13 +114,39 @@ app.prepare().then(async () => {
   server.get('/api/search', async (req, res) => {
     try {
       let query = req.query.query
+      let amount = req.query.amount
+      let page = req.query.page
       if (!query) return res.status(400).send('Missing query');
-      let queryRes = await fetch(
-        `https://api-v2.soundcloud.com/search?q=${query}&facet=model&user_id=6103-34204-861051-537219&client_id=${clientId}&limit=20&offset=0&linked_partitioning=1&app_version=1748345262&app_locale=en`
-      )
-      let queryData = await queryRes.json();
+      if (!amount) return res.status(400).send('Missing amount');
+      if (!page) return res.status(400).send('Missing page');
+
+      let currentUrl = `https://api-v2.soundcloud.com/search?q=${query}&facet=model&user_id=6103-34204-861051-537219&limit=${amount}&offset=0&linked_partitioning=1&app_version=1748345262&app_locale=en`
+      let accumulatedData;
+
+      for (let i = 0; i < page; i++) {
+        try {
+          const response = await fetch(`${currentUrl}&client_id=${clientId}`);
+
+          if (!response.ok) {
+            res.status(response.status).send(response.text())
+            return;
+          }
+
+          const data = await response.json();
+
+          if (i === page - 1) {
+            accumulatedData = data;
+          } else {
+            currentUrl = data.next_href;
+          }
+        } catch (error) {
+          console.error(`Error on fetch ${i + 1}:`, error);
+          return;
+        }
+      }
+
       let tracks = []
-      queryData.collection.forEach(track => {
+      accumulatedData.collection.forEach(track => {
         if (track.kind === "track" && track.monetization_model !== 'SUB_HIGH_TIER') {
           let newTrack = new Track(
             track.id,
@@ -128,10 +155,30 @@ app.prepare().then(async () => {
             track.user.username,
           )
           tracks.push(newTrack)
+        } else if (track.kind === "track" && track.monetization_model === 'SUB_HIGH_TIER') {
+          let newTrack = new Track(
+            track.id,
+            track.artwork_url,
+            "GO+ | " + track.title,
+            track.user.username,
+          )
+          tracks.push(newTrack)
+        } else {
+          let newTrack = new Track(
+            Math.floor(10000 + Math.random() * 90000),
+            "/no-artwork.png",
+            "This Element is not yet supported",
+            track.kind,
+          )
+          tracks.push(newTrack)
         }
       })
-      res.send(tracks)
+      res.send({
+        "page": 1,
+        "tracks": tracks
+      })
     } catch (error) {
+      console.log(error)
       res.status(500).send('Internal Server Error');
     }
   })
