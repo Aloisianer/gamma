@@ -57,7 +57,7 @@ export function Track({ id, artwork, title, creator, variant }) {
           src={imageSrc}
           alt={title}
           className="w-full max-h-50 min-h-10 object-cover cursor-pointer rounded-xl"
-          onClick={() => socket.emit("play", id)}
+          onClick={() => socket.emit("play", id, title)}
         />
         <div className="mt-2 text-center">
           <CardTitle className="text-[15px] overflow-ellipsis truncated-text overflow-hidden whitespace-nowrap pl-2 pr-2">

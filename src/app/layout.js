@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { cookies } from "next/headers"
 import { Toaster } from "@/components/ui/sonner"
 import { Search } from "@/components/search";
+import AudioPlayer from "@/components/player";
 
 export let metadata = {
   title: "Website Name",
@@ -30,7 +31,10 @@ export default async function RootLayout({ children }) {
           }}
         >
           <AppSidebar />
-          <main className="w-full h-full">{children}</main>
+          <main className="w-full h-full">
+            <AudioPlayer />
+            {children}
+          </main>
         </SidebarProvider>
         <Toaster />
         <Search />

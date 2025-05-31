@@ -11,8 +11,14 @@ import {
 } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { LuRepeat1, LuRepeat } from "react-icons/lu";
-import { PlayIcon, PauseIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
+import { PlayIcon, PauseIcon, Volume2Icon, Volume1Icon, VolumeXIcon, Repeat, Repeat1 } from "lucide-react";
+import { toast } from "sonner";
+import { socket } from "@/socket"
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card"
 
 const formatTime = (time) => {
   if (isNaN(time) || !isFinite(time)) return "0:00";
@@ -21,18 +27,57 @@ const formatTime = (time) => {
   return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 };
 
-const AudioPlayer = forwardRef(({ src }, ref) => {
+// Get initial volume from localStorage or default to 0.5
+const getInitialVolume = () => {
+  if (typeof window === 'undefined') return 0.5;
+  const savedVolume = localStorage.getItem('audioPlayerVolume');
+  return savedVolume ? parseFloat(savedVolume) : 0.5;
+};
+
+// Get initial mode from localStorage or default to 1
+const getInitialMode = () => {
+  if (typeof window === 'undefined') return 1;
+  const savedMode = localStorage.getItem('audioPlayerMode');
+  return savedMode ? parseInt(savedMode) : 1;
+};
+
+const AudioPlayer = forwardRef((props, ref) => {
   const audioRef = useRef(null);
   const volumeButtonRef = useRef(null);
+  let [currentTrackId, setCurrentTrackId] = useState(null);
+  
+  const songSrc = useMemo(() => {
+    if (currentTrackId) {
+      return `/api/track?id=${currentTrackId}`;
+    }
+    return null;
+  }, [currentTrackId]);
+
+  useEffect(() => {
+    let handlePlayNow = async (trackId, trackTitle) => {
+      if (!audioRef.current) {
+        return;
+      }
+
+      setCurrentTrackId(trackId);
+      toast(`Now playing ${trackTitle} (${trackId})`);
+    };
+
+    socket.on("playNow", handlePlayNow);
+
+    return () => {
+      socket.off("playNow", handlePlayNow);
+    };
+  }, []);
   
   const [playerState, setPlayerState] = useState({
     isPlaying: false,
-    volume: 0.5,
+    volume: getInitialVolume(), // Initialize from localStorage
     isMuted: false,
     isSongLoaded: false,
     currentTime: 0,
     duration: 0,
-    mode: 1,
+    mode: getInitialMode(), // Initialize mode from localStorage
   });
 
   const { 
@@ -44,6 +89,16 @@ const AudioPlayer = forwardRef(({ src }, ref) => {
     duration,
     mode 
   } = playerState;
+
+  // Save volume to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('audioPlayerVolume', volume.toString());
+  }, [volume]);
+
+  // Save mode to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('audioPlayerMode', mode.toString());
+  }, [mode]);
 
   const stateRef = useRef(playerState);
   useEffect(() => {
@@ -60,8 +115,6 @@ const AudioPlayer = forwardRef(({ src }, ref) => {
   const toggleMode = useCallback(() => {
     setState(prev => {
       const nextMode = prev.mode % 3 + 1;
-      if (nextMode === 2) console.log("Mode 2 activated");
-      if (nextMode === 3) console.log("Mode 3 activated");
       return { mode: nextMode };
     });
   }, [setState]);
@@ -93,8 +146,16 @@ const AudioPlayer = forwardRef(({ src }, ref) => {
     const newPlaying = !isPlaying;
     
     const playbackPromise = newPlaying 
-      ? player.play().then(() => setState({ isPlaying: true }))
-      : Promise.resolve(player.pause()).then(() => setState({ isPlaying: false }));
+      ? player.play().then(() => {
+          if (audioRef.current) {
+            setState({ isPlaying: true });
+          }
+        })
+      : Promise.resolve(player.pause()).then(() => {
+          if (audioRef.current) {
+            setState({ isPlaying: false });
+          }
+        });
 
     playbackPromise.catch(console.error);
   }, [isSongLoaded, isPlaying, setState]);
@@ -111,6 +172,19 @@ const AudioPlayer = forwardRef(({ src }, ref) => {
     });
   }, [isSongLoaded, setState]);
 
+  // Volume change handler with snap-to-center
+  const handleVolumeChange = useCallback(([newVolume]) => {
+    // Snap to 50% if within 5% of center
+    if (newVolume > 0.45 && newVolume < 0.55) {
+      newVolume = 0.5;
+    }
+    
+    setState({
+      volume: newVolume,
+      isMuted: newVolume === 0
+    });
+  }, [setState]);
+
   const handleTimelineChange = useCallback(([value]) => {
     if (isSongLoaded && audioRef.current) {
       audioRef.current.currentTime = value;
@@ -118,9 +192,14 @@ const AudioPlayer = forwardRef(({ src }, ref) => {
     }
   }, [isSongLoaded, setState]);
 
+  // Fixed useImperativeHandle to use forwarded ref
   useImperativeHandle(ref, () => ({
     play: () => {
-      audioRef.current?.play()?.then(() => setState({ isPlaying: true }));
+      audioRef.current?.play()?.then(() => {
+        if (audioRef.current) {
+          setState({ isPlaying: true });
+        }
+      });
     },
     pause: () => {
       audioRef.current?.pause();
@@ -143,27 +222,51 @@ const AudioPlayer = forwardRef(({ src }, ref) => {
     }
   }));
 
-  // Main audio effect - fixed dependency array
+  // Main audio effect
   useEffect(() => {
     const player = audioRef.current;
-    if (!player || !src) {
+    if (!player || !songSrc) {
       setState({ isSongLoaded: false, isPlaying: false });
       return;
     }
 
     const handleCanPlay = () => {
+      if (!audioRef.current) return;
       setState({
         isSongLoaded: true,
         duration: player.duration,
         currentTime: player.currentTime
       });
-      player.play().then(() => setState({ isPlaying: true })).catch(console.error);
+      player.play().then(() => {
+        if (audioRef.current) {
+          setState({ isPlaying: true });
+        }
+      }).catch(console.error);
     };
 
-    const handleTimeUpdate = () => setState({ currentTime: player.currentTime });
-    const handleMetadata = () => setState({ duration: player.duration });
-    const handleError = () => setState({ isPlaying: false, isSongLoaded: false });
-    const handleEnded = () => setState({ isPlaying: false, currentTime: 0 });
+    const handleTimeUpdate = () => {
+      if (audioRef.current) {
+        setState({ currentTime: player.currentTime });
+      }
+    };
+    
+    const handleMetadata = () => {
+      if (audioRef.current) {
+        setState({ duration: player.duration });
+      }
+    };
+    
+    const handleError = () => {
+      if (audioRef.current) {
+        setState({ isPlaying: false, isSongLoaded: false });
+      }
+    };
+    
+    const handleEnded = () => {
+      if (audioRef.current) {
+        setState({ isPlaying: false, currentTime: 0 });
+      }
+    };
 
     const events = [
       ['canplaythrough', handleCanPlay],
@@ -177,8 +280,8 @@ const AudioPlayer = forwardRef(({ src }, ref) => {
       player.addEventListener(event, handler)
     );
 
-    if (player.src !== src) {
-      player.src = src;
+    if (player.src !== songSrc) {
+      player.src = songSrc;
       player.load();
     }
 
@@ -192,7 +295,7 @@ const AudioPlayer = forwardRef(({ src }, ref) => {
       );
       player.pause();
     };
-  }, [src, setState]); // Removed volume/isMuted from dependencies
+  }, [songSrc, setState]);
 
   // Volume wheel handler
   useEffect(() => {
@@ -268,62 +371,80 @@ const AudioPlayer = forwardRef(({ src }, ref) => {
   }, [mode]);
 
   const modeIcon = useMemo(() => 
-    mode === 2 ? <LuRepeat1 size={16} /> : <LuRepeat size={16} />, 
+    mode === 2 ? <Repeat1 size={16} /> : <Repeat size={16} />, 
   [mode]);
 
   return (
-    <div className="flex items-center space-x-2 p-2 border rounded-md">
-      <audio ref={audioRef} preload="auto" />
-      
-      <Button
-        className="w-9 h-9"
-        variant="outline"
-        onClick={handlePlayPause}
-        disabled={!isSongLoaded}
-      >
-        {isPlaying ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
-      </Button>
+    <div className="sticky top-0 w-full p-3">
+      <div className="bg-background">
+        <div
+          className="flex items-center space-x-2 p-2 border border-input rounded-2xl"
+        >
+          <audio ref={audioRef} preload="auto" />
 
-      <Button
-        className="w-9 h-9"
-        ref={volumeButtonRef}
-        variant="outline"
-        onClick={handleToggleMute}
-        disabled={!isSongLoaded}
-        title={`Volume: ${displayVolume}%`}
-      >
-        {isMuted || volume === 0 ? (
-          <VolumeXIcon size={16} className="text-gray-500" />
-        ) : (
-          <Volume2Icon size={16} className="text-gray-700" />
-        )}
-      </Button>
+          <Button
+            className="w-9 h-9"
+            variant="outline"
+            onClick={handlePlayPause}
+            disabled={!isSongLoaded}
+          >
+            {isPlaying ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
+          </Button>
 
-      <Button
-        {...modeButtonProps}
-        onClick={toggleMode}
-        title={`Mode ${mode}`}
-      >
-        {modeIcon}
-      </Button>
+          <HoverCard>
+            <HoverCardTrigger asChild>
+              <Button
+                className="w-9 h-9"
+                ref={volumeButtonRef}
+                variant="outline"
+                onClick={handleToggleMute}
+                disabled={!isSongLoaded}
+              >
+                {isMuted || volume === 0 ? (
+                  <VolumeXIcon size={16} />
+                ) : volume > 0.49 ? (
+                  <Volume2Icon size={16} />
+                ) : (
+                  <Volume1Icon size={16} />
+                )}
+              </Button>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-30">
+              <Slider
+                defaultValue={[volume]}
+                value={[volume]}
+                onValueChange={handleVolumeChange}
+                max={1}
+                step={0.01}
+              ></Slider>
+            </HoverCardContent>
+          </HoverCard>
 
-      <div className={`flex items-center space-x-2 flex-grow ${
-        !isSongLoaded || duration === 0 ? 'pointer-events-none opacity-50' : ''
-      }`}>
-        <span className="text-xs text-gray-600 w-10 text-right">
-          {formatTime(currentTime)}
-        </span>
-        <Slider
-          value={[currentTime]}
-          max={duration}
-          step={1}
-          onValueChange={handleTimelineChange}
-          className="flex-grow h-[4px] [&>span]:h-full [&>span]:top-0 [&_span]:translate-y-0 [&_[role=slider]]:translate-y-[-50%]"
-          disabled={!isSongLoaded || duration === 0}
-        />
-        <span className="text-xs text-gray-600 w-10 text-left">
-          {formatTime(duration)}
-        </span>
+          <Button
+            {...modeButtonProps}
+            onClick={toggleMode}
+            disabled={!isSongLoaded}
+          >
+            {modeIcon}
+          </Button>
+
+          <div className={`flex items-center space-x-2 flex-grow ${!isSongLoaded || duration === 0 ? 'pointer-events-none opacity-50' : ''
+            }`}>
+            <span className="text-xs text-gray-600 w-10 text-right">
+              {formatTime(currentTime)}
+            </span>
+            <Slider
+              value={[currentTime]}
+              max={duration}
+              step={1}
+              onValueChange={handleTimelineChange}
+              disabled={!isSongLoaded || duration === 0}
+            />
+            <span className="text-xs text-gray-600 w-10 text-left">
+              {formatTime(duration)}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
