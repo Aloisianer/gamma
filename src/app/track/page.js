@@ -25,22 +25,21 @@ export default function TrackPage() {
 
     return (
         <div>
-            <h1>Track Information</h1>
             {trackData ? (
                 <BigTrack
                     id={trackData.id}
-                    artwork={trackData.artwork_url}
+                    artwork={`/api/image-big?id=${trackData.id}`}
                     title={trackData.title}
                     creator={trackData.user.username}
                 />
             ) : (
-                    <Ring
-                        size="40"
-                        stroke="5"
-                        bgOpacity="0"
-                        speed="2"
-                        color="white"
-                    />
+                <Ring
+                    size="40"
+                    stroke="5"
+                    bgOpacity="0"
+                    speed="2"
+                    color="white"
+                />
             )}
         </div>
     );

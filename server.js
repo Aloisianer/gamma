@@ -19,6 +19,21 @@ let app = next({ dev: true, turbopack: true })
 
 let handle = app.getRequestHandler()
 
+async function validateImage(url) {
+  try {
+    const response = await fetch(url, { method: "HEAD" });
+    const contentType = response.headers.get("content-type");
+
+    if (!contentType || !contentType.startsWith("image")) {
+      return "/no-artwork.png";
+    } else {
+      return url;
+    }
+  } catch (error) {
+    return "/no-artwork.png";
+  }
+}
+
 app.prepare().then(async () => {
   let server = express();
   let mainServer = createServer(server)
@@ -42,7 +57,7 @@ app.prepare().then(async () => {
       if (track.kind === "track" && track.monetization_model !== 'SUB_HIGH_TIER') {
         let newTrack = new Track(
           track.id,
-          track.artwork_url,
+          `/api/image?id=${track.id}`,
           track.title,
           track.user.username,
         )
@@ -130,6 +145,43 @@ app.prepare().then(async () => {
       if (!res.headersSent) res.status(500).send('Internal Server Error');
     }
   });
+  
+  server.get('/api/image', async (req, res) => {
+    try {
+      let trackId = req.query.id;
+      if (!trackId) return res.status(400).send('Missing trackId');
+
+      let trackRes = await fetch(
+        `https://api-v2.soundcloud.com/tracks/${trackId}?client_id=${clientId}`
+      );
+      let trackData = await trackRes.json();
+      let artwork = await validateImage(trackData.artwork_url)
+      res.redirect(artwork)
+    } catch (error) {
+      console.error('Track processing error:', error);
+      res.redirect('/no-artwork.png')
+    }
+  });
+
+    server.get('/api/image-big', async (req, res) => {
+    try {
+      let trackId = req.query.id;
+      if (!trackId) return res.status(400).send('Missing trackId');
+
+      let trackRes = await fetch(
+        `https://api-v2.soundcloud.com/tracks/${trackId}?client_id=${clientId}`
+      );
+      let trackData = await trackRes.json();
+      let artwork = await validateImage(trackData.artwork_url)
+      console.log(artwork)
+      artwork = await artwork.replaceAll('large', 't500x500')
+      console.log(artwork)
+      res.redirect(artwork)
+    } catch (error) {
+      console.error('Track processing error:', error);
+      res.redirect('/no-artwork.png')
+    }
+  });
 
   server.get('/api/search', async (req, res) => {
     try {
@@ -166,11 +218,12 @@ app.prepare().then(async () => {
       }
 
       let tracks = []
+      
       accumulatedData.collection.forEach(track => {
         if (track.kind === "track" && track.monetization_model !== 'SUB_HIGH_TIER') {
           let newTrack = new Track(
             track.id,
-            track.artwork_url,
+            `/api/image?id=${track.id}`,
             track.title,
             track.user.username,
           )
@@ -178,7 +231,7 @@ app.prepare().then(async () => {
         } else if (track.kind === "track" && track.monetization_model === 'SUB_HIGH_TIER') {
           let newTrack = new Track(
             track.id,
-            track.artwork_url,
+            `/api/image?id=${track.id}`,
             "GO+ | " + track.title,
             track.user.username,
           )

@@ -1,10 +1,10 @@
 "use client";
 
-import { 
-  useRef, 
-  useState, 
-  useEffect, 
-  forwardRef, 
+import {
+  useRef,
+  useState,
+  useEffect,
+  forwardRef,
   useImperativeHandle,
   useCallback,
   useMemo
@@ -12,7 +12,7 @@ import {
 import WaveSurfer from "wavesurfer.js";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { PlayIcon, PauseIcon, Volume2Icon, Volume1Icon, VolumeXIcon, Repeat, Repeat1, SkipBack, SkipForward } from "lucide-react";
+import { PlayIcon, PauseIcon, Volume2Icon, Volume1Icon, VolumeXIcon, Repeat, Repeat1, SkipBack, SkipForward, X } from "lucide-react";
 import { toast } from "sonner";
 import { socket } from "@/socket"
 import {
@@ -23,51 +23,64 @@ import {
 import { useRouter } from 'next/navigation';
 import { Ring } from "ldrs/react";
 import 'ldrs/react/Ring.css'
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 
-// letants
-let INITIAL_VOLUME = 0.5;
-let MODES = {
+// Constants
+const INITIAL_VOLUME = 0.5;
+const MODES = {
   NORMAL: 1,
   LOOP: 2,
   SINGLE: 3
 };
 
 // Format time helper
-let formatTime = (time) => {
+const formatTime = (time) => {
   if (isNaN(time) || !isFinite(time)) return "0:00";
-  let minutes = Math.floor(time / 60);
-  let seconds = Math.floor(time % 60);
+  const minutes = Math.floor(time / 60);
+  const seconds = Math.floor(time % 60);
   return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 };
 
 // Get initial values from localStorage
-let getStoredValue = (key, defaultValue) => {
+const getStoredValue = (key, defaultValue) => {
   if (typeof window === 'undefined') return defaultValue;
-  let value = localStorage.getItem(key);
+  const value = localStorage.getItem(key);
   return value ? JSON.parse(value) : defaultValue;
 };
 
-let AudioPlayer = forwardRef((props, ref) => {
-  let router = useRouter();
-  let [currentTrackId, setCurrentTrackId] = useState(null);
-  let [currentTrackTitle, setCurrentTrackTitle] = useState(null);
-  let [pause, setPause] = useState(true);
-  
+const AudioPlayer = forwardRef((props, ref) => {
+  const router = useRouter();
+  const [currentTrackId, setCurrentTrackId] = useState(null);
+  const [currentTrackTitle, setCurrentTrackTitle] = useState(null);
+  const [pause, setPause] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
   // Refs
-  let waveformRef = useRef(null);
-  let wavesurferRef = useRef(null);
-  let volumeButtonRef = useRef(null);
-  let prevVolumeRef = useRef(INITIAL_VOLUME);
-  let stateRef = useRef();
+  const waveformRef = useRef(null);
+  const wavesurferRef = useRef(null);
+  const volumeButtonRef = useRef(null);
+  const prevVolumeRef = useRef(INITIAL_VOLUME);
+  const stateRef = useRef();
+  const playerContainerRef = useRef(null);
 
   // Memoized values
-  let songSrc = useMemo(() => 
+  const songSrc = useMemo(() =>
     currentTrackId ? `/api/track?id=${currentTrackId}` : null,
     [currentTrackId]
   );
 
   // State initialization
-  let [playerState, setPlayerState] = useState(() => ({
+  const [playerState, setPlayerState] = useState(() => ({
     volume: getStoredValue('audioPlayerVolume', INITIAL_VOLUME),
     isSongLoaded: false,
     currentTime: 0,
@@ -76,7 +89,7 @@ let AudioPlayer = forwardRef((props, ref) => {
     isLoading: false,
   }));
 
-  let {
+  const {
     volume,
     isSongLoaded,
     currentTime,
@@ -90,19 +103,31 @@ let AudioPlayer = forwardRef((props, ref) => {
     stateRef.current = { ...playerState, pause };
   }, [playerState, pause]);
 
+  // Check mobile/desktop
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (!isMobile && isExpanded) setIsExpanded(false);
+    };
+
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, [isExpanded, isMobile]);
+
   // Optimized state setter
-  let setState = useCallback((update) => {
+  const setState = useCallback((update) => {
     setPlayerState(prev => {
-      let newState = typeof update === 'function' ? update(prev) : update;
+      const newState = typeof update === 'function' ? update(prev) : update;
       return { ...prev, ...newState };
     });
   }, []);
 
-  // WaveSurfer initialization (runs only once)
+  // WaveSurfer initialization
   useEffect(() => {
     if (!waveformRef.current) return;
-    
-    let wavesurfer = WaveSurfer.create({
+
+    const wavesurfer = WaveSurfer.create({
       container: waveformRef.current,
       waveColor: 'oklch(.208 .042 265.755)',
       progressColor: '#fff',
@@ -120,7 +145,7 @@ let AudioPlayer = forwardRef((props, ref) => {
     wavesurferRef.current.setVolume(getStoredValue('audioPlayerVolume', INITIAL_VOLUME))
 
     // Event handlers
-    let handleReady = () => {
+    const handleReady = () => {
       setState({
         isSongLoaded: true,
         isLoading: false,
@@ -130,28 +155,25 @@ let AudioPlayer = forwardRef((props, ref) => {
       wavesurfer.play();
     };
 
-    let handlePlay = () => setPause(false);
-    let handlePause = () => setPause(true);
-    
-    let handleTimeUpdate = (ct) => {
+    const handlePlay = () => setPause(false);
+    const handlePause = () => setPause(true);
+
+    const handleTimeUpdate = (ct) => {
       setState({ currentTime: ct });
     };
 
-    let handleFinish = () => {
-      let currentMode = stateRef.current.mode;
-      
+    const handleFinish = () => {
+      const currentMode = stateRef.current.mode;
+
       if (currentMode === MODES.SINGLE) {
-        // Loop single track
         wavesurfer.seekTo(0);
         wavesurfer.play();
       } else if (currentMode === MODES.LOOP) {
-        // Emit playlistNext and stop playback
         setPause(true);
         setState(prev => ({ ...prev, currentTime: 0 }));
         wavesurfer.seekTo(0);
         socket.emit("playlistNext");
       } else {
-        // Normal mode - stop playback
         setPause(true);
         setState(prev => ({ ...prev, currentTime: 0 }));
         wavesurfer.seekTo(0);
@@ -171,7 +193,7 @@ let AudioPlayer = forwardRef((props, ref) => {
   // Load new song when songSrc changes
   useEffect(() => {
     if (!wavesurferRef.current || !songSrc) return;
-    
+
     // Reset state for new track
     setState({
       isSongLoaded: false,
@@ -179,19 +201,17 @@ let AudioPlayer = forwardRef((props, ref) => {
       currentTime: 0,
       duration: 0
     });
-    
+
     // Load the new track
     wavesurferRef.current.load(songSrc);
   }, [songSrc, setState]);
 
   // Socket events
   useEffect(() => {
-    let handlePlayNow = (trackId, trackTitle) => {
-      // Clear previous track immediately
+    const handlePlayNow = (trackId, trackTitle) => {
       setCurrentTrackId(null);
       setCurrentTrackTitle(null);
-      
-      // Set new track after state update
+
       setTimeout(() => {
         setCurrentTrackId(trackId);
         setCurrentTrackTitle(trackTitle);
@@ -206,7 +226,7 @@ let AudioPlayer = forwardRef((props, ref) => {
   // Document title updates
   useEffect(() => {
     if (!currentTrackTitle) return;
-    let originalTitle = document.title;
+    const originalTitle = document.title;
     document.title = currentTrackTitle;
     return () => { document.title = originalTitle };
   }, [currentTrackTitle]);
@@ -229,37 +249,27 @@ let AudioPlayer = forwardRef((props, ref) => {
   }, [volume]);
 
   // Play/pause toggle
-  let handlePlayPause = useCallback(() => {
+  const handlePlayPause = useCallback(() => {
     if (!wavesurferRef.current || !isSongLoaded) return;
     wavesurferRef.current.playPause();
   }, [isSongLoaded]);
 
   // Mute toggle
-  let handleToggleMute = useCallback(() => {
+  const handleToggleMute = useCallback(() => {
     if (!isSongLoaded) return;
     setState(prev => ({
       volume: prev.volume > 0 ? 0 : prevVolumeRef.current || INITIAL_VOLUME
     }));
   }, [isSongLoaded, setState]);
 
-  // Volume change handler with 50% snap
-  let handleVolumeChange = useCallback(([newVolume]) => {
-    // Snap to 50% if within 0.05 range
+  // Volume change handler
+  const handleVolumeChange = useCallback(([newVolume]) => {
     if (Math.abs(newVolume - 0.5) <= 0.05) {
       setState({ volume: 0.5 });
     } else {
       setState({ volume: Math.round(newVolume * 20) / 20 });
     }
   }, [setState]);
-
-  // Timeline change handler
-  let handleTimelineChange = useCallback(([value]) => {
-    if (!isSongLoaded || !wavesurferRef.current) return;
-    
-    let progress = value / duration;
-    wavesurferRef.current.seekTo(progress);
-    setState({ currentTime: value });
-  }, [isSongLoaded, duration, setState]);
 
   // Expose API methods
   useImperativeHandle(ref, () => ({
@@ -270,7 +280,7 @@ let AudioPlayer = forwardRef((props, ref) => {
     setMuted: (muted) => setState({ volume: muted ? 0 : prevVolumeRef.current }),
     setCurrentTime: (time) => {
       if (!wavesurferRef.current || !isSongLoaded) return;
-      let progress = time / duration;
+      const progress = time / duration;
       wavesurferRef.current.seekTo(progress);
       setState({ currentTime: time });
     }
@@ -278,12 +288,12 @@ let AudioPlayer = forwardRef((props, ref) => {
 
   // Volume wheel control
   useEffect(() => {
-    let volumeButton = volumeButtonRef.current;
+    const volumeButton = volumeButtonRef.current;
     if (!volumeButton || !isSongLoaded) return;
 
-    let handleWheel = (e) => {
+    const handleWheel = (e) => {
       e.preventDefault();
-      let delta = e.deltaY > 0 ? -0.05 : 0.05;
+      const delta = e.deltaY > 0 ? -0.05 : 0.05;
       setState(prev => ({
         volume: Math.max(0, Math.min(1, prev.volume + delta))
       }));
@@ -295,10 +305,10 @@ let AudioPlayer = forwardRef((props, ref) => {
 
   // Keyboard shortcuts
   useEffect(() => {
-    let handleKeyDown = (e) => {
+    const handleKeyDown = (e) => {
       if (
-        !wavesurferRef.current || 
-        !stateRef.current.isSongLoaded || 
+        !wavesurferRef.current ||
+        !stateRef.current.isSongLoaded ||
         ['INPUT', 'TEXTAREA'].includes(e.target?.tagName)
       ) return;
 
@@ -323,34 +333,39 @@ let AudioPlayer = forwardRef((props, ref) => {
   }, [handlePlayPause]);
 
   // Mode button configuration
-  let { modeButtonProps, modeIcon } = useMemo(() => {
-    let isSpecialMode = mode === MODES.LOOP || mode === MODES.SINGLE;
-    
+  const { modeButtonProps, modeIcon } = useMemo(() => {
+    const isSpecialMode = mode === MODES.LOOP || mode === MODES.SINGLE;
+
     return {
       modeButtonProps: {
         variant: isSpecialMode ? "highlighted" : "outline",
         className: "w-9 h-9"
       },
-      modeIcon: mode === MODES.LOOP ? <Repeat size={16} /> : 
-                mode === MODES.SINGLE ? <Repeat1 size={16} /> : 
-                <Repeat size={16} />
+      modeIcon: mode === MODES.LOOP ? <Repeat size={16} /> :
+        mode === MODES.SINGLE ? <Repeat1 size={16} /> :
+          <Repeat size={16} />
     };
   }, [mode]);
 
   return (
-    <div className="sticky top-0 w-full p-3">
-      <div className="bg-background">
-        <div className="flex items-center space-x-2 p-2 border border-input rounded-2xl w-full flex-col">
-          <div className="flex items-center w-full space-x-2">
+    <div className="sticky top-0 w-full p-3 z-50">
+      <div>
+        <div
+          ref={playerContainerRef}
+          className="bg-background pt-2 flex items-center space-x-2 p-2 border border-input rounded-2xl w-full flex-col"
+        >
+          <div className="relative flex items-center w-full space-x-2">
+            {/* Back */}
             <Button
-              className="w-9 h-9"
+              className="w-9 h-9 rounded-lg"
               variant="outline"
               disabled={!isSongLoaded || isLoading}
               onClick={() => socket.emit('playlistPrevious')}
-            ><SkipBack/></Button>
+            ><SkipBack /></Button>
 
+            {/* Play / Pause / Resume */}
             <Button
-              className="w-9 h-9"
+              className="w-9 h-9 rounded-lg"
               variant="outline"
               onClick={handlePlayPause}
               disabled={!isSongLoaded || isLoading}
@@ -370,35 +385,46 @@ let AudioPlayer = forwardRef((props, ref) => {
               )}
             </Button>
 
+            {/* Next */}
             <Button
-              className="w-9 h-9"
+              className="w-9 h-9 rounded-lg"
               variant="outline"
               disabled={!isSongLoaded || isLoading}
               onClick={() => socket.emit('playlistNext')}
-            ><SkipForward/></Button>
+            ><SkipForward /></Button>
 
+            {/* Loop Button */}
             <Button
               {...modeButtonProps}
               onClick={() => setState(prev => ({
                 mode: prev.mode % 3 + 1
               }))}
-              disabled={!isSongLoaded || isLoading}
+              className="w-9 h-9"
             >
               {modeIcon}
             </Button>
 
-            <div className={`flex items-center space-x-2 flex-grow ${!isSongLoaded || duration === 0 ? 'pointer-events-none opacity-50' : ''}`}>
-              <span className="text-xs text-gray-600 w-10 text-right">
-                {formatTime(currentTime)}
-              </span>
+            {/* Timestaps & Visualizer*/}
+            <div className={`w-full flex items-center space-x-2 flex-grow ${!isSongLoaded || duration === 0 ? 'pointer-events-none opacity-50' : ''}`}>
+              {currentTrackId ? (
+                <span className="text-xs text-foreground/70 w-10 text-right">
+                  {formatTime(currentTime)}
+                </span>
+              ) : null}
 
-              <div ref={waveformRef} className="w-full ml-2 mr-3 cursor-pointer" />
+              <div
+                ref={waveformRef}
+                className="w-full cursor-pointer"
+              />
 
-              <span className="text-xs text-gray-600 w-10 text-left">
-                {formatTime(duration)}
-              </span>
+              {currentTrackId ? (
+                <span className="text-xs text-foreground/70 w-10 text-left">
+                  {formatTime(duration)}
+                </span>
+              ) : null}
             </div>
 
+            {/* Volume Button */}
             <HoverCard className="md:flex hidden">
               <HoverCardTrigger asChild>
                 <Button
@@ -432,17 +458,25 @@ let AudioPlayer = forwardRef((props, ref) => {
               </HoverCardContent>
             </HoverCard>
 
-            {currentTrackTitle && (
+            {/* Song Indicator */}
+            {currentTrackId ? (
               <Button
                 variant="outline"
-                className="max-w-50 min-w-15 md:flex hidden"
+                className="p-0.5"
                 onClick={() => router.push(`/track?id=${currentTrackId}`)}
               >
-                <p className="overflow-ellipsis truncated-text overflow-hidden whitespace-nowrap text-left">
-                  {currentTrackTitle}
-                </p>
+                <p
+                  className="text-[13px] overflow-ellipsis truncated-text overflow-hidden whitespace-nowrap pl-2 pr-2 min-w-15 max-w-40"
+                >{currentTrackTitle}</p>
+                <img
+                  className="rounded-lg border-1"
+                  src={`/api/image?id=${currentTrackId}`}
+                  width={30}
+                  height={30}
+                  alt={currentTrackId}
+                />
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

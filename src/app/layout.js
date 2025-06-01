@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { Toaster } from "@/components/ui/sonner";
 import { Search } from "@/components/search";
 import AudioPlayer from "@/components/player";
+import Navbar from "@/components/navbar"
 
 export let metadata = {
   title: "Website Name",
@@ -32,11 +33,14 @@ export default async function RootLayout({ children }) {
           >
             <AppSidebar />
             <main className="w-full h-full">
-              <AudioPlayer/>
+            <AudioPlayer />
+            <Navbar />
               {children}
             </main>
           </SidebarProvider>
-          <Toaster />
+          <div className="md:flex hidden">
+            <Toaster />
+          </div>
           <Search />
       </body>
     </html>
