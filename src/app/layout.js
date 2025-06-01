@@ -1,8 +1,8 @@
 import "./globals.css";
-import { SidebarProvider } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
-import { cookies } from "next/headers"
-import { Toaster } from "@/components/ui/sonner"
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { cookies } from "next/headers";
+import { Toaster } from "@/components/ui/sonner";
 import { Search } from "@/components/search";
 import AudioPlayer from "@/components/player";
 
@@ -24,20 +24,20 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={'antialiased dark w-full h-full'}>
-        <SidebarProvider defaultOpen={defaultOpen}
-          style={{
-            "--sidebar-width": "13rem",
-            "--sidebar-width-mobile": "20rem",
-          }}
-        >
-          <AppSidebar />
-          <main className="w-full h-full">
-            <AudioPlayer />
-            {children}
-          </main>
-        </SidebarProvider>
-        <Toaster />
-        <Search />
+          <SidebarProvider defaultOpen={defaultOpen}
+            style={{
+              "--sidebar-width": "13rem",
+              "--sidebar-width-mobile": "20rem",
+            }}
+          >
+            <AppSidebar />
+            <main className="w-full h-full">
+              <AudioPlayer/>
+              {children}
+            </main>
+          </SidebarProvider>
+          <Toaster />
+          <Search />
       </body>
     </html>
   );

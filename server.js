@@ -52,6 +52,14 @@ app.prepare().then(async () => {
 
     socket.emit('search', tracks)
 
+    socket.on('playlistNext', () => {
+      socket.emit('playNow', 746275300, "234234124")
+    })
+
+    socket.on('playlistPrevious', () => {
+      socket.emit('playNow', 1994809703, "xn88ax - Fuck It Up Now")
+    })
+
     socket.on('play', (trackId, trackTitle) => {
       socket.emit('playNow', trackId, trackTitle)
     })
@@ -112,43 +120,11 @@ app.prepare().then(async () => {
       let trackId = req.query.id;
       if (!trackId) return res.status(400).send('Missing trackId');
 
-      if (trackCache.has(trackId)) {
-        let { path: filePath, size } = trackCache.get(trackId);
-        handleRangeRequest(req, res, filePath, size);
-        return;
-      }
-
-      // Get Track Data
       let trackRes = await fetch(
         `https://api-v2.soundcloud.com/tracks/${trackId}?client_id=${clientId}`
       );
       let trackData = await trackRes.json();
-
-      // Full download
-      let progressive = trackData.media?.transcodings?.find(
-        t => t.format?.protocol === 'progressive'
-      );
-
-      if (progressive) {
-        let streamRes = await fetch(`${progressive.url}?client_id=${clientId}`);
-        let { url: mp3Url } = await streamRes.json();
-        return res.redirect(mp3Url);
-      }
-
-      let hlsStreams = trackData.media?.transcodings?.filter(
-        t => t.format?.protocol === 'hls'
-      );
-
-      if (!hlsStreams?.length) {
-        return res.status(404).send('No playable streams found');
-      }
-
-      let hlsTranscoding = hlsStreams.find(
-        t => t.format.mime_type === 'audio/mpeg'
-      ) || hlsStreams[0];
-
-      let { path: filePath, size } = await convertAndCacheTrack(trackId, hlsTranscoding);
-      handleRangeRequest(req, res, filePath, size);
+      res.json(trackData)
     } catch (error) {
       console.error('Track processing error:', error);
       if (!res.headersSent) res.status(500).send('Internal Server Error');

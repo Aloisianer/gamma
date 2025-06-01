@@ -28,26 +28,32 @@ let variants = cva(
   }
 )
 
+async function validateImage(url) {
+  try {
+    const response = await fetch(url, { method: "HEAD" });
+    const contentType = response.headers.get("content-type");
+
+    if (!contentType || !contentType.startsWith("image")) {
+      return "/no-artwork.png";
+    } else {
+      return url;
+    }
+  } catch (error) {
+    return "/no-artwork.png";
+  }
+}
+
 export function Track({ id, artwork, title, creator, variant }) {
   const [imageSrc, setImageSrc] = useState(artwork);
 
   useEffect(() => {
-    async function validateImage(url) {
-      try {
-        const response = await fetch(url, { method: "HEAD" });
-        const contentType = response.headers.get("content-type");
-
-        if (!contentType || !contentType.startsWith("image")) {
-          setImageSrc("/no-artwork.png");
-        }
-      } catch (error) {
-        setImageSrc("/no-artwork.png");
+    async function fetchImage() {
+      if (artwork) {
+        const validatedImage = await validateImage(artwork);
+        setImageSrc(validatedImage);
       }
     }
-
-    if (artwork) {
-      validateImage(artwork);
-    }
+    fetchImage();
   }, [artwork]);
 
   return (
@@ -69,5 +75,44 @@ export function Track({ id, artwork, title, creator, variant }) {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+export function BigTrack({ id, artwork, title, creator, variant }) {
+  const [imageSrc, setImageSrc] = useState(artwork);
+
+  useEffect(() => {
+    async function fetchImage() {
+      if (artwork) {
+        const validatedImage = await validateImage(artwork);
+        setImageSrc(validatedImage);
+      }
+    }
+    fetchImage();
+  }, [artwork]);
+
+  return (
+    <div>
+    <Card className="w-full">
+        <div className="mt-2 text-center">
+          <CardTitle className="text-[15px] overflow-ellipsis truncated-text overflow-hidden whitespace-nowrap pl-2 pr-2">
+            {title}
+          </CardTitle>
+          <CardDescription className="text-[12px] text-gray-500 pb-2">
+            {creator}
+          </CardDescription>
+        </div>
+      <CardContent className="p-0">
+          <div className="flex justify-between w-full">
+            <img
+              src={imageSrc}
+              alt={title}
+              className="h-40 w-40 cursor-pointer rounded-xl"
+              onClick={() => socket.emit("play", id, title)}
+            />
+          </div>
+      </CardContent>
+    </Card>
+    </div>
   );
 }

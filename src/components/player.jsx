@@ -9,9 +9,10 @@ import {
   useCallback,
   useMemo
 } from "react";
+import WaveSurfer from "wavesurfer.js";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { PlayIcon, PauseIcon, Volume2Icon, Volume1Icon, VolumeXIcon, Repeat, Repeat1 } from "lucide-react";
+import { PlayIcon, PauseIcon, Volume2Icon, Volume1Icon, VolumeXIcon, Repeat, Repeat1, SkipBack, SkipForward } from "lucide-react";
 import { toast } from "sonner";
 import { socket } from "@/socket"
 import {
@@ -19,312 +20,287 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card"
+import { useRouter } from 'next/navigation';
+import { Ring } from "ldrs/react";
+import 'ldrs/react/Ring.css'
 
-const formatTime = (time) => {
+// letants
+let INITIAL_VOLUME = 0.5;
+let MODES = {
+  NORMAL: 1,
+  LOOP: 2,
+  SINGLE: 3
+};
+
+// Format time helper
+let formatTime = (time) => {
   if (isNaN(time) || !isFinite(time)) return "0:00";
-  const minutes = Math.floor(time / 60);
-  const seconds = Math.floor(time % 60);
+  let minutes = Math.floor(time / 60);
+  let seconds = Math.floor(time % 60);
   return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 };
 
-// Get initial volume from localStorage or default to 0.5
-const getInitialVolume = () => {
-  if (typeof window === 'undefined') return 0.5;
-  const savedVolume = localStorage.getItem('audioPlayerVolume');
-  return savedVolume ? parseFloat(savedVolume) : 0.5;
+// Get initial values from localStorage
+let getStoredValue = (key, defaultValue) => {
+  if (typeof window === 'undefined') return defaultValue;
+  let value = localStorage.getItem(key);
+  return value ? JSON.parse(value) : defaultValue;
 };
 
-// Get initial mode from localStorage or default to 1
-const getInitialMode = () => {
-  if (typeof window === 'undefined') return 1;
-  const savedMode = localStorage.getItem('audioPlayerMode');
-  return savedMode ? parseInt(savedMode) : 1;
-};
-
-const AudioPlayer = forwardRef((props, ref) => {
-  const audioRef = useRef(null);
-  const volumeButtonRef = useRef(null);
+let AudioPlayer = forwardRef((props, ref) => {
+  let router = useRouter();
   let [currentTrackId, setCurrentTrackId] = useState(null);
+  let [currentTrackTitle, setCurrentTrackTitle] = useState(null);
+  let [pause, setPause] = useState(true);
   
-  const songSrc = useMemo(() => {
-    if (currentTrackId) {
-      return `/api/track?id=${currentTrackId}`;
-    }
-    return null;
-  }, [currentTrackId]);
+  // Refs
+  let waveformRef = useRef(null);
+  let wavesurferRef = useRef(null);
+  let volumeButtonRef = useRef(null);
+  let prevVolumeRef = useRef(INITIAL_VOLUME);
+  let stateRef = useRef();
 
-  useEffect(() => {
-    let handlePlayNow = async (trackId, trackTitle) => {
-      if (!audioRef.current) {
-        return;
-      }
+  // Memoized values
+  let songSrc = useMemo(() => 
+    currentTrackId ? `/api/track?id=${currentTrackId}` : null,
+    [currentTrackId]
+  );
 
-      setCurrentTrackId(trackId);
-      toast(`Now playing ${trackTitle} (${trackId})`);
-    };
-
-    socket.on("playNow", handlePlayNow);
-
-    return () => {
-      socket.off("playNow", handlePlayNow);
-    };
-  }, []);
-  
-  const [playerState, setPlayerState] = useState({
-    isPlaying: false,
-    volume: getInitialVolume(), // Initialize from localStorage
-    isMuted: false,
+  // State initialization
+  let [playerState, setPlayerState] = useState(() => ({
+    volume: getStoredValue('audioPlayerVolume', INITIAL_VOLUME),
     isSongLoaded: false,
     currentTime: 0,
     duration: 0,
-    mode: getInitialMode(), // Initialize mode from localStorage
-  });
+    mode: getStoredValue('audioPlayerMode', MODES.NORMAL),
+    isLoading: false,
+  }));
 
-  const { 
-    isPlaying, 
-    volume, 
-    isMuted, 
-    isSongLoaded, 
-    currentTime, 
+  let {
+    volume,
+    isSongLoaded,
+    currentTime,
     duration,
-    mode 
+    mode,
+    isLoading
   } = playerState;
 
-  // Save volume to localStorage whenever it changes
+  // Update state ref
   useEffect(() => {
-    localStorage.setItem('audioPlayerVolume', volume.toString());
-  }, [volume]);
+    stateRef.current = { ...playerState, pause };
+  }, [playerState, pause]);
 
-  // Save mode to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('audioPlayerMode', mode.toString());
-  }, [mode]);
-
-  const stateRef = useRef(playerState);
-  useEffect(() => {
-    stateRef.current = playerState;
-  }, [playerState]);
-
-  const setState = useCallback((update) => {
+  // Optimized state setter
+  let setState = useCallback((update) => {
     setPlayerState(prev => {
-      const newState = typeof update === 'function' ? update(prev) : update;
+      let newState = typeof update === 'function' ? update(prev) : update;
       return { ...prev, ...newState };
     });
   }, []);
 
-  const toggleMode = useCallback(() => {
-    setState(prev => {
-      const nextMode = prev.mode % 3 + 1;
-      return { mode: nextMode };
+  // WaveSurfer initialization (runs only once)
+  useEffect(() => {
+    if (!waveformRef.current) return;
+    
+    let wavesurfer = WaveSurfer.create({
+      container: waveformRef.current,
+      waveColor: 'oklch(.208 .042 265.755)',
+      progressColor: '#fff',
+      height: 40,
+      interact: true,
+      cursorWidth: 1,
+      cursorColor: '#fff',
+      barWidth: 2,
+      barGap: -1,
+      barRadius: 2,
+      volume: 0,
     });
+
+    wavesurferRef.current = wavesurfer;
+    wavesurferRef.current.setVolume(getStoredValue('audioPlayerVolume', INITIAL_VOLUME))
+
+    // Event handlers
+    let handleReady = () => {
+      setState({
+        isSongLoaded: true,
+        isLoading: false,
+        duration: wavesurfer.getDuration(),
+        currentTime: 0
+      });
+      wavesurfer.play();
+    };
+
+    let handlePlay = () => setPause(false);
+    let handlePause = () => setPause(true);
+    
+    let handleTimeUpdate = (ct) => {
+      setState({ currentTime: ct });
+    };
+
+    let handleFinish = () => {
+      let currentMode = stateRef.current.mode;
+      
+      if (currentMode === MODES.SINGLE) {
+        // Loop single track
+        wavesurfer.seekTo(0);
+        wavesurfer.play();
+      } else if (currentMode === MODES.LOOP) {
+        // Emit playlistNext and stop playback
+        setPause(true);
+        setState(prev => ({ ...prev, currentTime: 0 }));
+        wavesurfer.seekTo(0);
+        socket.emit("playlistNext");
+      } else {
+        // Normal mode - stop playback
+        setPause(true);
+        setState(prev => ({ ...prev, currentTime: 0 }));
+        wavesurfer.seekTo(0);
+      }
+    };
+
+    // Register events
+    wavesurfer.on('ready', handleReady);
+    wavesurfer.on('play', handlePlay);
+    wavesurfer.on('pause', handlePause);
+    wavesurfer.on('timeupdate', handleTimeUpdate);
+    wavesurfer.on('finish', handleFinish);
+
+    return () => wavesurfer.destroy();
   }, [setState]);
 
+  // Load new song when songSrc changes
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.loop = mode === 2;
-    }
+    if (!wavesurferRef.current || !songSrc) return;
+    
+    // Reset state for new track
+    setState({
+      isSongLoaded: false,
+      isLoading: true,
+      currentTime: 0,
+      duration: 0
+    });
+    
+    // Load the new track
+    wavesurferRef.current.load(songSrc);
+  }, [songSrc, setState]);
+
+  // Socket events
+  useEffect(() => {
+    let handlePlayNow = (trackId, trackTitle) => {
+      // Clear previous track immediately
+      setCurrentTrackId(null);
+      setCurrentTrackTitle(null);
+      
+      // Set new track after state update
+      setTimeout(() => {
+        setCurrentTrackId(trackId);
+        setCurrentTrackTitle(trackTitle);
+        toast(`Now playing ${trackTitle}`);
+      }, 0);
+    };
+
+    socket.on("playNow", handlePlayNow);
+    return () => socket.off("playNow", handlePlayNow);
+  }, []);
+
+  // Document title updates
+  useEffect(() => {
+    if (!currentTrackTitle) return;
+    let originalTitle = document.title;
+    document.title = currentTrackTitle;
+    return () => { document.title = originalTitle };
+  }, [currentTrackTitle]);
+
+  // Persistent settings
+  useEffect(() => {
+    localStorage.setItem('audioPlayerVolume', volume.toString());
+  }, [volume]);
+
+  useEffect(() => {
+    localStorage.setItem('audioPlayerMode', mode.toString());
   }, [mode]);
 
-  // Volume update effect
+  // Volume control
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume;
+    if (wavesurferRef.current) {
+      wavesurferRef.current.setVolume(volume);
+      if (volume > 0) prevVolumeRef.current = volume;
     }
   }, [volume]);
 
-  // Mute update effect
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.muted = isMuted;
-    }
-  }, [isMuted]);
+  // Play/pause toggle
+  let handlePlayPause = useCallback(() => {
+    if (!wavesurferRef.current || !isSongLoaded) return;
+    wavesurferRef.current.playPause();
+  }, [isSongLoaded]);
 
-  const handlePlayPause = useCallback(() => {
-    const player = audioRef.current;
-    if (!player || !isSongLoaded) return;
-
-    const newPlaying = !isPlaying;
-    
-    const playbackPromise = newPlaying 
-      ? player.play().then(() => {
-          if (audioRef.current) {
-            setState({ isPlaying: true });
-          }
-        })
-      : Promise.resolve(player.pause()).then(() => {
-          if (audioRef.current) {
-            setState({ isPlaying: false });
-          }
-        });
-
-    playbackPromise.catch(console.error);
-  }, [isSongLoaded, isPlaying, setState]);
-
-  const handleToggleMute = useCallback(() => {
+  // Mute toggle
+  let handleToggleMute = useCallback(() => {
     if (!isSongLoaded) return;
-
-    setState(prev => {
-      const newMuted = !prev.isMuted;
-      if (!newMuted && prev.volume === 0) {
-        return { isMuted: newMuted, volume: 0.5 };
-      }
-      return { isMuted: newMuted };
-    });
+    setState(prev => ({
+      volume: prev.volume > 0 ? 0 : prevVolumeRef.current || INITIAL_VOLUME
+    }));
   }, [isSongLoaded, setState]);
 
-  // Volume change handler with snap-to-center
-  const handleVolumeChange = useCallback(([newVolume]) => {
-    // Snap to 50% if within 5% of center
-    if (newVolume > 0.45 && newVolume < 0.55) {
-      newVolume = 0.5;
+  // Volume change handler with 50% snap
+  let handleVolumeChange = useCallback(([newVolume]) => {
+    // Snap to 50% if within 0.05 range
+    if (Math.abs(newVolume - 0.5) <= 0.05) {
+      setState({ volume: 0.5 });
+    } else {
+      setState({ volume: Math.round(newVolume * 20) / 20 });
     }
-    
-    setState({
-      volume: newVolume,
-      isMuted: newVolume === 0
-    });
   }, [setState]);
 
-  const handleTimelineChange = useCallback(([value]) => {
-    if (isSongLoaded && audioRef.current) {
-      audioRef.current.currentTime = value;
-      setState({ currentTime: value });
-    }
-  }, [isSongLoaded, setState]);
+  // Timeline change handler
+  let handleTimelineChange = useCallback(([value]) => {
+    if (!isSongLoaded || !wavesurferRef.current) return;
+    
+    let progress = value / duration;
+    wavesurferRef.current.seekTo(progress);
+    setState({ currentTime: value });
+  }, [isSongLoaded, duration, setState]);
 
-  // Fixed useImperativeHandle to use forwarded ref
+  // Expose API methods
   useImperativeHandle(ref, () => ({
-    play: () => {
-      audioRef.current?.play()?.then(() => {
-        if (audioRef.current) {
-          setState({ isPlaying: true });
-        }
-      });
-    },
-    pause: () => {
-      audioRef.current?.pause();
-      setState({ isPlaying: false });
-    },
+    play: () => wavesurferRef.current?.play(),
+    pause: () => wavesurferRef.current?.pause(),
     togglePlayPause: handlePlayPause,
-    setVolume: (newVolume) => {
-      const clamped = Math.max(0, Math.min(1, newVolume));
-      setState({ 
-        volume: clamped,
-        isMuted: clamped === 0
-      });
-    },
-    setMuted: (muted) => setState({ isMuted: muted }),
+    setVolume: (newVolume) => setState({ volume: Math.max(0, Math.min(1, newVolume)) }),
+    setMuted: (muted) => setState({ volume: muted ? 0 : prevVolumeRef.current }),
     setCurrentTime: (time) => {
-      if (audioRef.current && isSongLoaded) {
-        audioRef.current.currentTime = time;
-        setState({ currentTime: time });
-      }
+      if (!wavesurferRef.current || !isSongLoaded) return;
+      let progress = time / duration;
+      wavesurferRef.current.seekTo(progress);
+      setState({ currentTime: time });
     }
   }));
 
-  // Main audio effect
+  // Volume wheel control
   useEffect(() => {
-    const player = audioRef.current;
-    if (!player || !songSrc) {
-      setState({ isSongLoaded: false, isPlaying: false });
-      return;
-    }
-
-    const handleCanPlay = () => {
-      if (!audioRef.current) return;
-      setState({
-        isSongLoaded: true,
-        duration: player.duration,
-        currentTime: player.currentTime
-      });
-      player.play().then(() => {
-        if (audioRef.current) {
-          setState({ isPlaying: true });
-        }
-      }).catch(console.error);
-    };
-
-    const handleTimeUpdate = () => {
-      if (audioRef.current) {
-        setState({ currentTime: player.currentTime });
-      }
-    };
-    
-    const handleMetadata = () => {
-      if (audioRef.current) {
-        setState({ duration: player.duration });
-      }
-    };
-    
-    const handleError = () => {
-      if (audioRef.current) {
-        setState({ isPlaying: false, isSongLoaded: false });
-      }
-    };
-    
-    const handleEnded = () => {
-      if (audioRef.current) {
-        setState({ isPlaying: false, currentTime: 0 });
-      }
-    };
-
-    const events = [
-      ['canplaythrough', handleCanPlay],
-      ['timeupdate', handleTimeUpdate],
-      ['loadedmetadata', handleMetadata],
-      ['error', handleError],
-      ['ended', handleEnded]
-    ];
-
-    events.forEach(([event, handler]) => 
-      player.addEventListener(event, handler)
-    );
-
-    if (player.src !== songSrc) {
-      player.src = songSrc;
-      player.load();
-    }
-
-    // Set initial volume/mute state
-    player.volume = volume;
-    player.muted = isMuted;
-
-    return () => {
-      events.forEach(([event, handler]) => 
-        player.removeEventListener(event, handler)
-      );
-      player.pause();
-    };
-  }, [songSrc, setState]);
-
-  // Volume wheel handler
-  useEffect(() => {
-    const volumeButton = volumeButtonRef.current;
+    let volumeButton = volumeButtonRef.current;
     if (!volumeButton || !isSongLoaded) return;
 
-    const handleWheel = (e) => {
+    let handleWheel = (e) => {
       e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.05 : 0.05;
-      const newVolume = Math.max(0, Math.min(1, volume + delta));
-      
-      setState({ 
-        volume: newVolume,
-        isMuted: newVolume === 0
-      });
+      let delta = e.deltaY > 0 ? -0.05 : 0.05;
+      setState(prev => ({
+        volume: Math.max(0, Math.min(1, prev.volume + delta))
+      }));
     };
 
     volumeButton.addEventListener('wheel', handleWheel);
     return () => volumeButton.removeEventListener('wheel', handleWheel);
-  }, [isSongLoaded, volume]);
+  }, [isSongLoaded, setState]);
 
-  // Global keyboard shortcuts
+  // Keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      const player = audioRef.current;
-      const currentState = stateRef.current;
-      
-      if (!player || !currentState.isSongLoaded || 
-          ['INPUT', 'TEXTAREA'].includes(e.target?.tagName)) return;
+    let handleKeyDown = (e) => {
+      if (
+        !wavesurferRef.current || 
+        !stateRef.current.isSongLoaded || 
+        ['INPUT', 'TEXTAREA'].includes(e.target?.tagName)
+      ) return;
 
       switch (e.key) {
         case ' ':
@@ -333,11 +309,11 @@ const AudioPlayer = forwardRef((props, ref) => {
           break;
         case 'ArrowLeft':
           e.preventDefault();
-          player.currentTime = Math.max(0, player.currentTime - 5);
+          wavesurferRef.current.skip(-5);
           break;
         case 'ArrowRight':
           e.preventDefault();
-          player.currentTime = Math.min(currentState.duration, player.currentTime + 5);
+          wavesurferRef.current.skip(5);
           break;
       }
     };
@@ -346,103 +322,127 @@ const AudioPlayer = forwardRef((props, ref) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handlePlayPause]);
 
-  const displayVolume = useMemo(() => 
-    isMuted ? 0 : Math.round(volume * 100), 
-  [isMuted, volume]);
-
-  const modeButtonProps = useMemo(() => {
-    switch(mode) {
-      case 2:
-        return {
-          variant: "highlighted",
-          className: "w-9 h-9"
-        };
-      case 3:
-        return {
-          variant: "highlighted",
-          className: "w-9 h-9"
-        };
-      default:
-        return {
-          variant: "outline",
-          className: "w-9 h-9"
-        };
-    }
+  // Mode button configuration
+  let { modeButtonProps, modeIcon } = useMemo(() => {
+    let isSpecialMode = mode === MODES.LOOP || mode === MODES.SINGLE;
+    
+    return {
+      modeButtonProps: {
+        variant: isSpecialMode ? "highlighted" : "outline",
+        className: "w-9 h-9"
+      },
+      modeIcon: mode === MODES.LOOP ? <Repeat size={16} /> : 
+                mode === MODES.SINGLE ? <Repeat1 size={16} /> : 
+                <Repeat size={16} />
+    };
   }, [mode]);
-
-  const modeIcon = useMemo(() => 
-    mode === 2 ? <Repeat1 size={16} /> : <Repeat size={16} />, 
-  [mode]);
 
   return (
     <div className="sticky top-0 w-full p-3">
       <div className="bg-background">
-        <div
-          className="flex items-center space-x-2 p-2 border border-input rounded-2xl"
-        >
-          <audio ref={audioRef} preload="auto" />
+        <div className="flex items-center space-x-2 p-2 border border-input rounded-2xl w-full flex-col">
+          <div className="flex items-center w-full space-x-2">
+            <Button
+              className="w-9 h-9"
+              variant="outline"
+              disabled={!isSongLoaded || isLoading}
+              onClick={() => socket.emit('playlistPrevious')}
+            ><SkipBack/></Button>
 
-          <Button
-            className="w-9 h-9"
-            variant="outline"
-            onClick={handlePlayPause}
-            disabled={!isSongLoaded}
-          >
-            {isPlaying ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
-          </Button>
+            <Button
+              className="w-9 h-9"
+              variant="outline"
+              onClick={handlePlayPause}
+              disabled={!isSongLoaded || isLoading}
+            >
+              {isLoading ? (
+                <Ring
+                  size="16"
+                  stroke="2"
+                  bgOpacity="0"
+                  speed="2"
+                  color="white"
+                />
+              ) : pause ? (
+                <PlayIcon size={16} />
+              ) : (
+                <PauseIcon size={16} />
+              )}
+            </Button>
 
-          <HoverCard>
-            <HoverCardTrigger asChild>
+            <Button
+              className="w-9 h-9"
+              variant="outline"
+              disabled={!isSongLoaded || isLoading}
+              onClick={() => socket.emit('playlistNext')}
+            ><SkipForward/></Button>
+
+            <Button
+              {...modeButtonProps}
+              onClick={() => setState(prev => ({
+                mode: prev.mode % 3 + 1
+              }))}
+              disabled={!isSongLoaded || isLoading}
+            >
+              {modeIcon}
+            </Button>
+
+            <div className={`flex items-center space-x-2 flex-grow ${!isSongLoaded || duration === 0 ? 'pointer-events-none opacity-50' : ''}`}>
+              <span className="text-xs text-gray-600 w-10 text-right">
+                {formatTime(currentTime)}
+              </span>
+
+              <div ref={waveformRef} className="w-full ml-2 mr-3 cursor-pointer" />
+
+              <span className="text-xs text-gray-600 w-10 text-left">
+                {formatTime(duration)}
+              </span>
+            </div>
+
+            <HoverCard className="md:flex hidden">
+              <HoverCardTrigger asChild>
+                <Button
+                  className="w-9 h-9 md:flex hidden"
+                  ref={volumeButtonRef}
+                  variant="outline"
+                  onClick={handleToggleMute}
+                >
+                  {volume === 0 ? (
+                    <VolumeXIcon size={16} />
+                  ) : volume > 0.49 ? (
+                    <Volume2Icon size={16} />
+                  ) : (
+                    <Volume1Icon size={16} />
+                  )}
+                </Button>
+              </HoverCardTrigger>
+              <HoverCardContent className="w-30">
+                <Slider
+                  defaultValue={[volume]}
+                  value={[volume]}
+                  onValueChange={handleVolumeChange}
+                  max={1}
+                  step={0.05}
+                  onValueCommit={(value) => {
+                    if (Math.abs(value[0] - 0.5) <= 0.05) {
+                      setState({ volume: 0.5 });
+                    }
+                  }}
+                />
+              </HoverCardContent>
+            </HoverCard>
+
+            {currentTrackTitle && (
               <Button
-                className="w-9 h-9"
-                ref={volumeButtonRef}
                 variant="outline"
-                onClick={handleToggleMute}
-                disabled={!isSongLoaded}
+                className="max-w-50 min-w-15 md:flex hidden"
+                onClick={() => router.push(`/track?id=${currentTrackId}`)}
               >
-                {isMuted || volume === 0 ? (
-                  <VolumeXIcon size={16} />
-                ) : volume > 0.49 ? (
-                  <Volume2Icon size={16} />
-                ) : (
-                  <Volume1Icon size={16} />
-                )}
+                <p className="overflow-ellipsis truncated-text overflow-hidden whitespace-nowrap text-left">
+                  {currentTrackTitle}
+                </p>
               </Button>
-            </HoverCardTrigger>
-            <HoverCardContent className="w-30">
-              <Slider
-                defaultValue={[volume]}
-                value={[volume]}
-                onValueChange={handleVolumeChange}
-                max={1}
-                step={0.01}
-              ></Slider>
-            </HoverCardContent>
-          </HoverCard>
-
-          <Button
-            {...modeButtonProps}
-            onClick={toggleMode}
-            disabled={!isSongLoaded}
-          >
-            {modeIcon}
-          </Button>
-
-          <div className={`flex items-center space-x-2 flex-grow ${!isSongLoaded || duration === 0 ? 'pointer-events-none opacity-50' : ''
-            }`}>
-            <span className="text-xs text-gray-600 w-10 text-right">
-              {formatTime(currentTime)}
-            </span>
-            <Slider
-              value={[currentTime]}
-              max={duration}
-              step={1}
-              onValueChange={handleTimelineChange}
-              disabled={!isSongLoaded || duration === 0}
-            />
-            <span className="text-xs text-gray-600 w-10 text-left">
-              {formatTime(duration)}
-            </span>
+            )}
           </div>
         </div>
       </div>
