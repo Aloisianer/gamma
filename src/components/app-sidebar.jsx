@@ -15,7 +15,7 @@ import Link from "next/link";
 import * as Icon from "react-feather";
 
 let items = [
-    { title: "Home", url: "#", icon: Icon.Home },
+    { title: "Search", url: "/search", icon: Icon.Search },
     { title: "Inbox", url: "#", icon: Icon.Inbox },
     { title: "Calendar", url: "#", icon: Icon.Calendar },
     { title: "Search", url: "#", icon: Icon.Search },

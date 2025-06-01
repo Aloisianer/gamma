@@ -8,11 +8,11 @@ import AudioPlayer from "@/components/player";
 import Navbar from "@/components/navbar"
 
 export let metadata = {
-  title: "Website Name",
-  description: "Site Description",
+  title: "I need a name for this",
+  description: "An alternative SoundCloud FrontEnd (powered by SoundCloud)",
   openGraph: {
-    title: "Embed Title",
-    description: "Site Description",
+    title: "I need a name for this",
+    description: "An alternative SoundCloud FrontEnd (powered by SoundCloud)",
     url: "https://sound.hackrland.dev",
     images: ["https://embed.com/embedimage.png"],
   }
@@ -34,13 +34,11 @@ export default async function RootLayout({ children }) {
             <AppSidebar />
             <main className="w-full h-full">
             <AudioPlayer />
-            <Navbar />
+            <div className="xl:hidden"><Navbar /></div>
               {children}
             </main>
           </SidebarProvider>
-          <div className="md:flex hidden">
-            <Toaster />
-          </div>
+          <div className="md:flex hidden"><Toaster /></div>
           <Search />
       </body>
     </html>

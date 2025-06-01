@@ -25,12 +25,12 @@ async function validateImage(url) {
     const contentType = response.headers.get("content-type");
 
     if (!contentType || !contentType.startsWith("image")) {
-      return "/no-artwork.png";
+      return "REPLACE";
     } else {
       return url;
     }
   } catch (error) {
-    return "/no-artwork.png";
+    return "REPLACE";
   }
 }
 
@@ -156,10 +156,14 @@ app.prepare().then(async () => {
       );
       let trackData = await trackRes.json();
       let artwork = await validateImage(trackData.artwork_url)
-      res.redirect(artwork)
+      if (artwork !== "REPLACE") {
+        res.redirect(artwork)
+      } else {
+        res.status(404).send("404 Not Found")
+      }
     } catch (error) {
       console.error('Track processing error:', error);
-      res.redirect('/no-artwork.png')
+      res.status(404).send("404 Not Found")
     }
   });
 
@@ -173,13 +177,15 @@ app.prepare().then(async () => {
       );
       let trackData = await trackRes.json();
       let artwork = await validateImage(trackData.artwork_url)
-      console.log(artwork)
       artwork = await artwork.replaceAll('large', 't500x500')
-      console.log(artwork)
-      res.redirect(artwork)
+      if (artwork !== "REPLACE") {
+        res.redirect(artwork)
+      } else {
+        res.status(404).send("404 Not Found")
+      }
     } catch (error) {
       console.error('Track processing error:', error);
-      res.redirect('/no-artwork.png')
+      res.status(404).send("404 Not Found")
     }
   });
 
@@ -239,7 +245,7 @@ app.prepare().then(async () => {
         } else {
           let newTrack = new Track(
             Math.floor(10000 + Math.random() * 90000),
-            "/no-artwork.png",
+            "",
             "This Element is not yet supported",
             track.kind,
           )

@@ -2,16 +2,12 @@
 
 import React from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
 
 import {
   NavigationMenu,
-  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 
 export default function Navbar() {
@@ -21,7 +17,7 @@ export default function Navbar() {
     >
       <NavigationMenuList>
         <NavigationMenuItem>
-          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+          <NavigationMenuLink asChild>
             <Link href="/search">Search</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>

@@ -11,10 +11,7 @@ import {
     CommandSeparator,
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button"
-
-function containsUsefulInfo(str) {
-    return /[a-zA-Z0-9]/.test(str);
-}
+import { containsUsefulInfo } from "@/lib/utils"
 
 export function Search() {
     const [open, setOpen] = useState(false);
