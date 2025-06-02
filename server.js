@@ -279,6 +279,96 @@ app.prepare().then(async () => {
     }
   })
 
+    server.get('/api/user-likes', async (req, res) => {
+    try {
+      let id = req.query.id
+      let amount = req.query.amount
+      let page = req.query.page
+      if (!id) return res.status(400).send('Missing id');
+      if (!amount) return res.status(400).send('Missing amount');
+      if (!page) return res.status(400).send('Missing page');
+
+      let currentUrl = `https://api-v2.soundcloud.com/users/${id}/likes?limit=${amount}&linked_partitioning=1`
+      let accumulatedData;
+
+      for (let i = 0; i < page; i++) {
+        try {
+          const response = await fetch(`${currentUrl}&client_id=${clientId}`);
+
+          if (!response.ok) {
+            res.status(response.status).send(response.text())
+            return;
+          }
+
+          const data = await response.json();
+
+          if (i === page - 1) {
+            accumulatedData = data;
+          } else {
+            currentUrl = data.next_href;
+          }
+        } catch (error) {
+          console.error(`Error on fetch ${i + 1}:`, error);
+          return;
+        }
+      }
+
+      let tracks = []
+      
+      accumulatedData.collection.forEach(track => {
+        track = track.track
+
+        if (track.kind === "track" && track.monetization_model !== 'SUB_HIGH_TIER') {
+          let newTrack = new Track(
+            "track",
+            track.id,
+            `/api/image?id=${track.id}`,
+            track.title,
+            track.user.username,
+            `/track?id=${track.id}`
+          )
+          tracks.push(newTrack)
+        } else if (track.kind === "track" && track.monetization_model === 'SUB_HIGH_TIER') {
+          let newTrack = new Track(
+            "track",
+            track.id,
+            `/api/image?id=${track.id}`,
+            "GO+ | " + track.title,
+            track.user.username,
+            `/track?id=${track.id}`
+          )
+          tracks.push(newTrack)
+        } else if (track.kind === "user") {
+          let newTrack = new Track(
+            "user",
+            track.id,
+            `/api/image-user?id=${track.id}`,
+            track.full_name,
+            track.username,
+            `/user?id=${track.id}`
+          )
+          tracks.push(newTrack)
+        } else {
+          let newTrack = new Track(
+            "unknown",
+            Math.floor(10000 + Math.random() * 90000),
+            `/api/image?id=${track.id}`,
+            "This Element is not yet supported",
+            track.kind,
+          )
+          tracks.push(newTrack)
+        }
+      })
+      res.send({
+        "page": 1,
+        "tracks": tracks
+      })
+    } catch (error) {
+      console.log(error)
+      res.status(500).send('Internal Server Error');
+    }
+  })
+
   server.all(/(.*)/, (req, res) => {
     return handle(req, res)
   })
