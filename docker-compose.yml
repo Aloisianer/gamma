@@ -7,4 +7,4 @@ services:
    - .:/usr/src/app
   ports:
    - '3000:6907'
-  command: node app.js
+  command: node server.js
