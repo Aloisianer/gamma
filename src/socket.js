@@ -1,3 +1,5 @@
 import { io } from 'socket.io-client';
 
-export const socket = io("https://sound.hackrland.dev");
+const URL = process.env.SERVER === 'true' ? 'https://sound.hackrland.dev' : 'http://localhost:3000';
+
+export const socket = io(URL);
