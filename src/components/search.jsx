@@ -75,6 +75,7 @@ export function Search() {
                 })
                 .then(data => {
                     if (!signal.aborted) {
+                        console.log(data)
                         setResults(data.tracks || []);
                     }
                 })
@@ -96,7 +97,6 @@ export function Search() {
     const handleEnter = useCallback((e) => {
         if (e.key === "Enter" && containsUsefulInfo(query)) {
             router.push(`/search?query=${encodeURIComponent(query)}`);
-            setOpen(false);
         }
     }, [query, router]);
 
@@ -127,6 +127,8 @@ export function Search() {
                                     artwork={item.artwork}
                                     title={item.title}
                                     creator={item.creator}
+                                    link={item.link}
+                                    type={item.type}
                                     variant="searchBox"
                                 />
                             ))}

@@ -1,0 +1,10 @@
+services:
+ nodejs:
+  image: 'node:latest'
+  restart: always
+  working_dir: /usr/src/app
+  volumes:
+   - .:/usr/src/app
+  ports:
+   - '3000:6907'
+  command: node app.js

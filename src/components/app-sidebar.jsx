@@ -8,7 +8,8 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarHeader,
-    SidebarFooter
+    SidebarFooter,
+    SidebarTrigger
 } from "@/components/ui/sidebar";
 
 import Link from "next/link";
@@ -18,7 +19,6 @@ let items = [
     { title: "Search", url: "/search", icon: Icon.Search },
     { title: "Inbox", url: "#", icon: Icon.Inbox },
     { title: "Calendar", url: "#", icon: Icon.Calendar },
-    { title: "Search", url: "#", icon: Icon.Search },
     { title: "Settings", url: "#", icon: Icon.Settings }
 ];
 
@@ -27,7 +27,7 @@ export function AppSidebar() {
         <Sidebar collapsible="icon" className="hidden xl:block">
             <SidebarContent>
                 <SidebarGroup>
-                    <SidebarGroupLabel>HackrPlayer</SidebarGroupLabel>
+                    <SidebarGroupLabel>I need a name for this</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu className="ml-[0.49]">
                             {items.map((item) => (
@@ -44,6 +44,9 @@ export function AppSidebar() {
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>
+            <SidebarFooter>
+                <SidebarTrigger />
+            </SidebarFooter>
         </Sidebar>
     );
 }

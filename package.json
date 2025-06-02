@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "SERVER=false node server.js",
     "build": "next build",
-    "start": "next start",
+    "start": "SERVER=true node server.js",
     "lint": "next lint"
   },
   "dependencies": {
@@ -19,6 +19,7 @@
     "@radix-ui/react-slider": "^1.3.5",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tooltip": "^1.2.7",
+    "body-parser": "^2.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

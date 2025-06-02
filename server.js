@@ -15,7 +15,9 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 export let trackCache = new Map();
 export let clientId;
 
-let app = next({ dev: true, turbopack: true })
+const serverEnv = process.env.SERVER !== 'true';
+
+let app = next({ dev: serverEnv, turbopack: true })
 
 let handle = app.getRequestHandler()
 
@@ -46,27 +48,6 @@ app.prepare().then(async () => {
   });
 
   socket.on('connection', async (socket) => {
-    let query = "hardcore"
-    let amount = "10"
-    let link = `https://api-v2.soundcloud.com/search?q=${query}&facet=model&user_id=6103-34204-861051-537219&client_id=${clientId}&limit=${amount}&offset=0&linked_partitioning=1&app_version=1748345262&app_locale=en`;
-    let queryRes = await fetch(link)
-    let queryData = await queryRes.json();
-    let tracks = []
-
-    queryData.collection.forEach(async track => {
-      if (track.kind === "track" && track.monetization_model !== 'SUB_HIGH_TIER') {
-        let newTrack = new Track(
-          track.id,
-          `/api/image?id=${track.id}`,
-          track.title,
-          track.user.username,
-        )
-        tracks.push(newTrack)
-      }
-    })
-
-    socket.emit('search', tracks)
-
     socket.on('playlistNext', () => {
       socket.emit('playNow', 746275300, "234234124")
     })
@@ -189,6 +170,27 @@ app.prepare().then(async () => {
     }
   });
 
+  server.get('/api/image-user', async (req, res) => {
+    try {
+      let trackId = req.query.id;
+      if (!trackId) return res.status(400).send('Missing trackId');
+
+      let trackRes = await fetch(
+        `https://api-v2.soundcloud.com/users/${trackId}?client_id=${clientId}`
+      );
+      let trackData = await trackRes.json();
+      let artwork = await validateImage(trackData.avatar_url)
+      if (artwork !== "REPLACE") {
+        res.redirect(artwork)
+      } else {
+        res.status(404).send("404 Not Found")
+      }
+    } catch (error) {
+      console.error('Track processing error:', error);
+      res.status(404).send("404 Not Found")
+    }
+  });
+
   server.get('/api/search', async (req, res) => {
     try {
       let query = req.query.query
@@ -228,24 +230,39 @@ app.prepare().then(async () => {
       accumulatedData.collection.forEach(track => {
         if (track.kind === "track" && track.monetization_model !== 'SUB_HIGH_TIER') {
           let newTrack = new Track(
+            "track",
             track.id,
             `/api/image?id=${track.id}`,
             track.title,
             track.user.username,
+            `/track?id=${track.id}`
           )
           tracks.push(newTrack)
         } else if (track.kind === "track" && track.monetization_model === 'SUB_HIGH_TIER') {
           let newTrack = new Track(
+            "track",
             track.id,
             `/api/image?id=${track.id}`,
             "GO+ | " + track.title,
             track.user.username,
+            `/track?id=${track.id}`
+          )
+          tracks.push(newTrack)
+        } else if (track.kind === "user") {
+          let newTrack = new Track(
+            "user",
+            track.id,
+            `/api/image-user?id=${track.id}`,
+            track.full_name,
+            track.username,
+            `/user?id=${track.id}`
           )
           tracks.push(newTrack)
         } else {
           let newTrack = new Track(
+            "unknown",
             Math.floor(10000 + Math.random() * 90000),
-            "",
+            `/api/image?id=${track.id}`,
             "This Element is not yet supported",
             track.kind,
           )

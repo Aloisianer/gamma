@@ -461,7 +461,7 @@ let AudioPlayer = forwardRef((props, ref) => {
           {/* Song Indicator */}
           {/* -------------------------------- */}
           {currentTrackId ? (
-            <SmallTrack id={currentTrackId} artwork={`/api/image?id=${currentTrackId}`} title={currentTrackTitle} />
+            <SmallTrack id={currentTrackId} artwork={`/api/image?id=${currentTrackId}`} title={currentTrackTitle} link={`/track?id=${currentTrackId}`} />
           ) : null}
           {/* -------------------------------- */}
         </div>

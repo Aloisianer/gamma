@@ -104,6 +104,8 @@ export default function Home() {
                                         artwork={item.artwork}
                                         title={item.title}
                                         creator={item.creator}
+                                        link={item.link}
+                                        type={item.type}
                                     />
                                 ))}
                             </div>
