@@ -6,5 +6,5 @@ services:
   volumes:
    - .:/usr/src/app
   ports:
-   - '3000:6907'
+   - '6907:3000'
   command: node server.js
