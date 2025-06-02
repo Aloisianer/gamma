@@ -3,6 +3,8 @@ services:
   image: 'node:latest'
   restart: always
   working_dir: /usr/src/app
+  environment:
+   - SERVER=true
   volumes:
    - .:/usr/src/app
   ports:
