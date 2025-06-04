@@ -15,7 +15,7 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 export let trackCache = new Map();
 export let clientId;
 
-const serverEnv = process.env.SERVER !== 'true';
+let serverEnv = process.env.SERVER !== 'true';
 
 let app = next({ dev: serverEnv, turbopack: true })
 
@@ -23,8 +23,8 @@ let handle = app.getRequestHandler()
 
 async function validateImage(url) {
   try {
-    const response = await fetch(url, { method: "HEAD" });
-    const contentType = response.headers.get("content-type");
+    let response = await fetch(url, { method: 'HEAD' });
+    let contentType = response.headers.get("content-type");
 
     if (!contentType || !contentType.startsWith("image")) {
       return "REPLACE";
@@ -32,6 +32,7 @@ async function validateImage(url) {
       return url;
     }
   } catch (error) {
+    console.log(error)
     return "REPLACE";
   }
 }
@@ -71,7 +72,7 @@ function newTrack(track) {
     let newTrack = new Track(
       "playlist",
       track.id,
-      `/api/image?id=${track.id}`,
+      `/api/image-playlist?id=${track.id}`,
       track.title,
       track.user.username,
       `/playlist?id=${track.id}`
@@ -189,7 +190,14 @@ app.prepare().then(async () => {
         `https://api-v2.soundcloud.com/tracks/${trackId}?client_id=${clientId}`
       );
       let trackData = await trackRes.json();
-      let artwork = await validateImage(trackData.artwork_url)
+
+      let artwork = '';
+      if (trackData.artwork_url === null) {
+        artwork = await validateImage(trackData.user.avatar_url)
+      } else {
+        artwork = await validateImage(trackData.artwork_url)
+      }
+      
       if (artwork !== "REPLACE") {
         res.redirect(artwork)
       } else {
@@ -212,6 +220,38 @@ app.prepare().then(async () => {
       let trackData = await trackRes.json();
       let artwork = await validateImage(trackData.artwork_url)
       artwork = await artwork.replaceAll('large', 't500x500')
+      if (artwork !== "REPLACE") {
+        res.redirect(artwork)
+      } else {
+        res.status(404).send("404 Not Found")
+      }
+    } catch (error) {
+      console.error('Track processing error:', error);
+      res.status(404).send("404 Not Found")
+    }
+  });
+  
+  server.get('/api/image-playlist', async (req, res) => {
+    try {
+      let trackId = req.query.id;
+      if (!trackId) return res.status(400).send('Missing trackId');
+
+      let trackRes = await fetch(
+        `https://api-v2.soundcloud.com/playlists/${trackId}?client_id=${clientId}`
+      );
+      let trackData = await trackRes.json();
+      
+      let artwork = '';
+      if (trackData.artwork_url === null) {
+        if (trackData.tracks[0].artwork_url === null) {
+          artwork = await validateImage(trackData.tracks[0].user.avatar_url)
+        } else {
+          artwork = await validateImage(trackData.tracks[0].artwork_url)
+        }
+      } else {
+        artwork = await validateImage(trackData.artwork_url)
+      }
+
       if (artwork !== "REPLACE") {
         res.redirect(artwork)
       } else {
@@ -258,14 +298,14 @@ app.prepare().then(async () => {
 
       for (let i = 0; i < page; i++) {
         try {
-          const response = await fetch(`${currentUrl}&client_id=${clientId}`);
+          let response = await fetch(`${currentUrl}&client_id=${clientId}`);
 
           if (!response.ok) {
             res.status(response.status).send(response.text())
             return;
           }
 
-          const data = await response.json();
+          let data = await response.json();
 
           if (i === page - 1) {
             accumulatedData = data;
@@ -307,14 +347,14 @@ app.prepare().then(async () => {
 
       for (let i = 0; i < page; i++) {
         try {
-          const response = await fetch(`${currentUrl}&client_id=${clientId}`);
+          let response = await fetch(`${currentUrl}&client_id=${clientId}`);
 
           if (!response.ok) {
             res.status(response.status).send(response.text())
             return;
           }
 
-          const data = await response.json();
+          let data = await response.json();
 
           if (i === page - 1) {
             accumulatedData = data;
@@ -330,8 +370,11 @@ app.prepare().then(async () => {
       let tracks = []
       
       accumulatedData.collection.forEach(track => {
-        track = track.track
-        tracks.push(newTrack(track))
+        if (track.playlist) {
+          tracks.push(newTrack(track.playlist))
+        } else {
+          tracks.push(newTrack(track.track))
+        }
       })
       res.send({
         "page": page,
@@ -357,14 +400,14 @@ app.prepare().then(async () => {
 
       for (let i = 0; i < page; i++) {
         try {
-          const response = await fetch(`${currentUrl}&client_id=${clientId}`);
+          let response = await fetch(`${currentUrl}&client_id=${clientId}`);
 
           if (!response.ok) {
             res.status(response.status).send(response.text())
             return;
           }
 
-          const data = await response.json();
+          let data = await response.json();
 
           if (i === page - 1) {
             accumulatedData = data;
@@ -387,33 +430,39 @@ app.prepare().then(async () => {
         "tracks": tracks
       })
     } catch (error) {
-      console.log(error)
       res.status(500).send('Internal Server Error');
     }
   })
 
     server.get('/api/user-tracks', async (req, res) => {
     try {
+      let recent = req.query.recent
       let id = req.query.id
       let amount = req.query.amount
       let page = req.query.page
       if (!id) return res.status(400).send('Missing id');
-      if (!amount) return res.status(400).send('Missing amount');
       if (!page) return res.status(400).send('Missing page');
 
-      let currentUrl = `https://api-v2.soundcloud.com/users/${id}/tracks?limit=${amount}&linked_partitioning=1`
+      let currentUrl
+      
+      if (recent === "1") {
+        currentUrl = `https://api-v2.soundcloud.com/users/${id}/tracks?limit=${amount}&linked_partitioning=1`
+      } else {
+        currentUrl = `https://api-v2.soundcloud.com/users/${id}/toptracks?linked_partitioning=1`
+      }
+
       let accumulatedData;
 
       for (let i = 0; i < page; i++) {
         try {
-          const response = await fetch(`${currentUrl}&client_id=${clientId}`);
+          let response = await fetch(`${currentUrl}&client_id=${clientId}`);
 
           if (!response.ok) {
             res.status(response.status).send(response.text())
             return;
           }
 
-          const data = await response.json();
+          let data = await response.json();
 
           if (i === page - 1) {
             accumulatedData = data;
@@ -429,7 +478,6 @@ app.prepare().then(async () => {
       let tracks = []
       
       accumulatedData.collection.forEach(track => {
-        track = track.track
         tracks.push(newTrack(track))
       })
       res.send({

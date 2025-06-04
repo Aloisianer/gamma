@@ -97,6 +97,15 @@ export function Track({ type, id, artwork, title, creator, variant, link }) {
             onError={() => setImageSrc(placeholderImage)}
           />
         ) : null}
+        {type === "playlist" ? (
+          <img
+            src={imageSrc}
+            alt={title}
+            className="w-full max-h-50 min-h-10 object-cover cursor-pointer rounded-xl"
+            onClick={() => router.push(link)}
+            onError={() => setImageSrc(placeholderImage)}
+          />
+        ) : null}
         {type === "unknown" ? (
           <img
             src={imageSrc}
@@ -163,6 +172,45 @@ export function BigTrack({ id, artwork, title, creator }) {
           </div>
       </CardContent>
     </Card>
+  );
+}
+
+export function MediumTrack({ type, id, artwork, title, creator, link }) {
+  const [imageSrc, setImageSrc] = useState(placeholderImage);
+  let router = useRouter()
+
+  useEffect(() => {
+    if (artwork && artwork !== "404 Not Found") {
+      fetch(artwork)
+        .then((response) => {
+          if (response.ok) {
+            setImageSrc(artwork);
+          } else {
+            setImageSrc(placeholderImage);
+          }
+        })
+        .catch(() => setImageSrc(placeholderImage));
+    }
+  }, [artwork]);
+
+  return (
+    <Button
+      variant="outline"
+      className="p-0.5 h-17 w-50"
+      onClick={() => socket.emit("play", id, title)}
+    >
+      <p
+        className="text-[13px] overflow-ellipsis truncated-text overflow-hidden whitespace-nowrap pl-2 pr-2 min-w-15 max-w-40"
+      >{title}</p>
+      <img
+        className="rounded-lg border-1"
+        src={imageSrc}
+        width={60}
+        height={60}
+        alt={id}
+        onError={() => setImageSrc(placeholderImage)}
+      />
+    </Button>
   );
 }
 

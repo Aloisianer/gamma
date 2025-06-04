@@ -37,7 +37,7 @@ export default function Home() {
 
 
     return (
-        <div className="pb-8 w-full">
+        <div className="pb-8 p-3 w-full">
             <div className="flex justify-center place-items-center ml-5 mr-5">
                 {results.length > 0 ? (
                     <div>
