@@ -36,6 +36,7 @@ export default function Home() {
       <div className="pt-3 pb-8">
         <div className={`fixed top-0 right-0 transition-all m-3 w-1 h-1 rounded ${ConnectionColor}`}>
         </div>
+        <h1>This is the homepage, nothing is here</h1>
       </div>
     </div>
   );
