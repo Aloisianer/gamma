@@ -21,28 +21,13 @@ let app = next({ dev: serverEnv, turbopack: true })
 
 let handle = app.getRequestHandler()
 
-async function validateImage(url) {
-  try {
-    let response = await fetch(url, { method: 'HEAD' });
-    let contentType = response.headers.get("content-type");
-
-    if (!contentType || !contentType.startsWith("image")) {
-      return "REPLACE";
-    } else {
-      return url;
-    }
-  } catch (error) {
-    console.log(error)
-    return "REPLACE";
-  }
-}
 
 function newTrack(track) {
   if (track.kind === "track" && track.monetization_model !== 'SUB_HIGH_TIER') {
     let newTrack = new Track(
       "track",
       track.id,
-      `/api/image?id=${track.id}`,
+  track.artwork_url || track.user?.avatar_url || "404 Not Found",
       track.title,
       track.user.username,
       `/track?id=${track.id}`
@@ -52,7 +37,7 @@ function newTrack(track) {
     let newTrack = new Track(
       "track",
       track.id,
-      `/api/image?id=${track.id}`,
+  track.artwork_url || track.user?.avatar_url || "404 Not Found",
       "GO+ | " + track.title,
       track.user.username,
       `/track?id=${track.id}`
@@ -62,7 +47,7 @@ function newTrack(track) {
     let newTrack = new Track(
       "user",
       track.id,
-      `/api/image-user?id=${track.id}`,
+  track.avatar_url || "404 Not Found",
       track.full_name,
       track.username,
       `/user?id=${track.id}`
@@ -72,7 +57,7 @@ function newTrack(track) {
     let newTrack = new Track(
       "playlist",
       track.id,
-      `/api/image-playlist?id=${track.id}`,
+  track.artwork_url || (track.tracks && track.tracks[0]?.artwork_url) || (track.tracks && track.tracks[0]?.user?.avatar_url) || "404 Not Found",
       track.title,
       track.user.username,
       `/playlist?id=${track.id}`
@@ -82,7 +67,7 @@ function newTrack(track) {
     let newTrack = new Track(
       "unknown",
       Math.floor(10000 + Math.random() * 90000),
-      `/api/image?id=${track.id}`,
+  track.artwork_url || "404 Not Found",
       "This Element is not yet supported",
       track.kind,
     )
@@ -181,108 +166,7 @@ app.prepare().then(async () => {
     }
   });
   
-  server.get('/api/image', async (req, res) => {
-    try {
-      let trackId = req.query.id;
-      if (!trackId) return res.status(400).send('Missing trackId');
-
-      let trackRes = await fetch(
-        `https://api-v2.soundcloud.com/tracks/${trackId}?client_id=${clientId}`
-      );
-      let trackData = await trackRes.json();
-
-      let artwork = '';
-      if (trackData.artwork_url === null) {
-        artwork = await validateImage(trackData.user.avatar_url)
-      } else {
-        artwork = await validateImage(trackData.artwork_url)
-      }
-      
-      if (artwork !== "REPLACE") {
-        res.redirect(artwork)
-      } else {
-        res.status(404).send("404 Not Found")
-      }
-    } catch (error) {
-      console.error('Track processing error:', error);
-      res.status(404).send("404 Not Found")
-    }
-  });
-
-    server.get('/api/image-big', async (req, res) => {
-    try {
-      let trackId = req.query.id;
-      if (!trackId) return res.status(400).send('Missing trackId');
-
-      let trackRes = await fetch(
-        `https://api-v2.soundcloud.com/tracks/${trackId}?client_id=${clientId}`
-      );
-      let trackData = await trackRes.json();
-      let artwork = await validateImage(trackData.artwork_url)
-      artwork = await artwork.replaceAll('large', 't500x500')
-      if (artwork !== "REPLACE") {
-        res.redirect(artwork)
-      } else {
-        res.status(404).send("404 Not Found")
-      }
-    } catch (error) {
-      console.error('Track processing error:', error);
-      res.status(404).send("404 Not Found")
-    }
-  });
-  
-  server.get('/api/image-playlist', async (req, res) => {
-    try {
-      let trackId = req.query.id;
-      if (!trackId) return res.status(400).send('Missing trackId');
-
-      let trackRes = await fetch(
-        `https://api-v2.soundcloud.com/playlists/${trackId}?client_id=${clientId}`
-      );
-      let trackData = await trackRes.json();
-      
-      let artwork = '';
-      if (trackData.artwork_url === null) {
-        if (trackData.tracks[0].artwork_url === null) {
-          artwork = await validateImage(trackData.tracks[0].user.avatar_url)
-        } else {
-          artwork = await validateImage(trackData.tracks[0].artwork_url)
-        }
-      } else {
-        artwork = await validateImage(trackData.artwork_url)
-      }
-
-      if (artwork !== "REPLACE") {
-        res.redirect(artwork)
-      } else {
-        res.status(404).send("404 Not Found")
-      }
-    } catch (error) {
-      console.error('Track processing error:', error);
-      res.status(404).send("404 Not Found")
-    }
-  });
-
-  server.get('/api/image-user', async (req, res) => {
-    try {
-      let trackId = req.query.id;
-      if (!trackId) return res.status(400).send('Missing trackId');
-
-      let trackRes = await fetch(
-        `https://api-v2.soundcloud.com/users/${trackId}?client_id=${clientId}`
-      );
-      let trackData = await trackRes.json();
-      let artwork = await validateImage(trackData.avatar_url)
-      if (artwork !== "REPLACE") {
-        res.redirect(artwork)
-      } else {
-        res.status(404).send("404 Not Found")
-      }
-    } catch (error) {
-      console.error('Track processing error:', error);
-      res.status(404).send("404 Not Found")
-    }
-  });
+  // Image/avatar endpoints removed: avatars are handled client-side using SoundCloud URLs
 
   server.get('/api/search', async (req, res) => {
     try {

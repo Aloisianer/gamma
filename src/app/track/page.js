@@ -28,7 +28,11 @@ export default function TrackPage() {
             {trackData ? (
                 <BigTrack
                     id={trackData.id}
-                    artwork={`/api/image-big?id=${trackData.id}`}
+                    artwork={(function(){
+                        const art = trackData.artwork_url || trackData.user?.avatar_url || null;
+                        if (!art) return null;
+                        try { return art.replaceAll('large', 't500x500') } catch(e) { return art }
+                    })()}
                     title={trackData.title}
                     creator={trackData.user.username}
                 />

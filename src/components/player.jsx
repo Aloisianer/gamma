@@ -36,6 +36,7 @@ let MODES = {
 let AudioPlayer = forwardRef((props, ref) => {
   let [currentTrackId, setCurrentTrackId] = useState(null);
   let [currentTrackTitle, setCurrentTrackTitle] = useState(null);
+  let [currentArtwork, setCurrentArtwork] = useState(null);
   let [pause, setPause] = useState(true);
 
   // Refs
@@ -172,6 +173,7 @@ let AudioPlayer = forwardRef((props, ref) => {
     let handlePlayNow = (trackId, trackTitle) => {
       setCurrentTrackId(null);
       setCurrentTrackTitle(null);
+  setCurrentArtwork(null);
 
       setTimeout(() => {
         setCurrentTrackId(trackId);
@@ -183,6 +185,24 @@ let AudioPlayer = forwardRef((props, ref) => {
     socket.on("playNow", handlePlayNow);
     return () => socket.off("playNow", handlePlayNow);
   }, []);
+
+  // Fetch artwork client-side for the current track
+  useEffect(() => {
+    if (!currentTrackId) return;
+
+    let cancelled = false;
+    fetch(`/api/track-info?id=${currentTrackId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled) return;
+        // prefer artwork_url, else user avatar; keep original size for small images
+        let artwork = data.artwork_url || data.user?.avatar_url || null;
+        setCurrentArtwork(artwork || null);
+      })
+      .catch(() => setCurrentArtwork(null));
+
+    return () => { cancelled = true };
+  }, [currentTrackId]);
 
   // Document title updates
   useEffect(() => {
@@ -461,7 +481,7 @@ let AudioPlayer = forwardRef((props, ref) => {
           {/* Song Indicator */}
           {/* -------------------------------- */}
           {currentTrackId ? (
-            <SmallTrack id={currentTrackId} artwork={`/api/image?id=${currentTrackId}`} title={currentTrackTitle} link={`/track?id=${currentTrackId}`} />
+            <SmallTrack id={currentTrackId} artwork={currentArtwork} title={currentTrackTitle} link={`/track?id=${currentTrackId}`} />
           ) : null}
           {/* -------------------------------- */}
         </div>
