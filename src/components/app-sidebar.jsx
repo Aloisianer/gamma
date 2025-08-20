@@ -24,7 +24,7 @@ let items = [
 
 export function AppSidebar() {
     return (
-        <Sidebar collapsible="icon" className="hidden xl:block">
+        <Sidebar collapsible="icon">
             <SidebarContent>
                 <SidebarGroup>
                     <SidebarGroupLabel>I need a name for this</SidebarGroupLabel>
@@ -44,9 +44,6 @@ export function AppSidebar() {
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>
-            <SidebarFooter>
-                <SidebarTrigger />
-            </SidebarFooter>
         </Sidebar>
     );
 }

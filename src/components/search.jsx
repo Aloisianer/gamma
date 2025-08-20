@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Track } from "@/components/track";
 import {
+    Command,
     CommandDialog,
     CommandInput,
     CommandList,
@@ -14,15 +15,16 @@ import { Button } from "@/components/ui/button"
 import { containsUsefulInfo } from "@/lib/utils"
 
 export function Search() {
-    const [open, setOpen] = useState(false);
-    const [results, setResults] = useState([]);
-    const [query, setQuery] = useState('');
-    const [page, setPage] = useState(1);
-    const router = useRouter();
-    const timerRef = useRef(null);
-    const abortControllerRef = useRef(null);
+    let [open, setOpen] = useState(false);
+    let [results, setResults] = useState([]);
+    let [query, setQuery] = useState('');
+    let [loading, setLoading] = useState(false);
+    let [page, setPage] = useState(1);
+    let router = useRouter();
+    let timerRef = useRef(null);
+    let abortControllerRef = useRef(null);
 
-    const resetState = useCallback(() => {
+    let resetState = useCallback(() => {
         setQuery('');
         setResults([]);
         setPage(1);
@@ -30,7 +32,7 @@ export function Search() {
 
     // Keyboard shortcut handler
     useEffect(() => {
-        const handler = (e) => {
+        let handler = (e) => {
             if (e.key === "s" && e.ctrlKey) {
                 e.preventDefault();
                 setOpen(prev => !prev);
@@ -46,7 +48,7 @@ export function Search() {
     }, [open, resetState]);
 
     useEffect(() => {
-        // Reset page when query changes
+        setLoading(true);
         setPage(1);
     }, [query]);
 
@@ -63,7 +65,7 @@ export function Search() {
         }
 
         abortControllerRef.current = new AbortController();
-        const signal = abortControllerRef.current.signal;
+        let signal = abortControllerRef.current.signal;
 
         timerRef.current = setTimeout(() => {
             fetch(`/api/search?page=${page}&amount=8&query=${encodeURIComponent(query)}`, {
@@ -75,8 +77,8 @@ export function Search() {
                 })
                 .then(data => {
                     if (!signal.aborted) {
-                        console.log(data)
                         setResults(data.tracks || []);
+                        setLoading(false);
                     }
                 })
                 .catch(() => {
@@ -94,17 +96,17 @@ export function Search() {
         };
     }, [query, page]);
 
-    const handleEnter = useCallback((e) => {
+    let handleEnter = useCallback((e) => {
         if (e.key === "Enter" && containsUsefulInfo(query)) {
             router.push(`/search?query=${encodeURIComponent(query)}`);
         }
     }, [query, router]);
 
-    const loadNextPage = useCallback(() => {
+    let loadNextPage = useCallback(() => {
         setPage(prev => prev + 1);
     }, []);
 
-    const loadPreviousPage = useCallback(() => {
+    let loadPreviousPage = useCallback(() => {
         setPage(prev => Math.max(1, prev - 1));
     }, []);
 
@@ -151,7 +153,7 @@ export function Search() {
                             </Button>
                         </div>
                     </div>
-                ) : containsUsefulInfo(query) ? (
+                ) : containsUsefulInfo(query) && !loading ? (
                     <CommandEmpty>No results found.</CommandEmpty>
                 ) : null}
             </CommandList>

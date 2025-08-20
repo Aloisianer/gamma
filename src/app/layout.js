@@ -19,27 +19,18 @@ export let metadata = {
 };
 
 export default async function RootLayout({ children }) {
-  let cookieStore = await cookies()
-  let defaultOpen = cookieStore.get("sidebar_state")?.value === "true"
-
   return (
     <html lang="en">
       <body className={'antialiased dark w-full h-full'}>
-          <SidebarProvider defaultOpen={defaultOpen}
-            style={{
-              "--sidebar-width": "13rem",
-              "--sidebar-width-mobile": "20rem",
-            }}
-          >
-            <AppSidebar />
-            <main className="w-full h-full">
+        <SidebarProvider>
+          <AppSidebar />
+          <main className="w-full h-full">
             <AudioPlayer />
-            <div className="xl:hidden"><Navbar /></div>
-              {children}
-            </main>
-          </SidebarProvider>
-          <div className="md:flex hidden"><Toaster /></div>
-          <Search />
+            {children}
+          </main>
+        </SidebarProvider>
+        <Toaster />
+        <Search />
       </body>
     </html>
   );
