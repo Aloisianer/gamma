@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import {
   Card,
   CardAction,
@@ -59,6 +59,56 @@ const ImageInspector = ({ src, alt }) => {
         </DialogContent>
       </Dialog>
     </div>
+  );
+};
+
+function Description({ text }) {
+  const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+
+  const renderDescriptionWithLinks = (text) => {
+    if (!text) return null;
+
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = urlRegex.exec(text)) !== null) {
+      const url = match[0];
+
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+
+      const href = url.startsWith("http") ? url : `http://${url}`;
+
+      parts.push(
+        <a
+          key={`link-${match.index}`}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-400 hover:underline"
+        >
+          {url}
+        </a>
+      );
+
+      lastIndex = urlRegex.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts.map((part, index) => (
+      <Fragment key={index}>{part}</Fragment>
+    ));
+  };
+
+  return (
+    <p className="text-sm whitespace-pre-wrap">
+      {renderDescriptionWithLinks(text)}
+    </p>
   );
 };
 
@@ -166,7 +216,7 @@ export function BigTrack({ id, artwork, title, subtitle, description, creator })
           </Button>
           <div className="flex flex-col w-150 gap-3">
             <p className="text-lg">{title}</p>
-            <p className="text-sm">{description}</p>
+            <Description text={description} />
           </div>
         </div>
         <CardAction>
@@ -244,7 +294,7 @@ export function SmallTrack({ id, artwork, title, link }) {
 
   return (
     <Button asChild variant="outline" className="p-0.5">
-  <Link prefetch={true} href={link}>
+      <Link prefetch={true} href={link}>
         <p
           className="text-[13px] overflow-ellipsis truncated-text overflow-hidden whitespace-nowrap pl-2 pr-2 min-w-15 max-w-40"
         >{title}</p>
