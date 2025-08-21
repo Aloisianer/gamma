@@ -22,3 +22,45 @@ export function getStoredValue(key, defaultValue) {
 export function containsUsefulInfo(str) {
     return /[a-zA-Z0-9]/.test(str);
 };
+
+export function formatFollowers(num) {
+  if (typeof num !== "number" || isNaN(num)) {
+    console.warn("Invalid input: Please provide a valid number.");
+    return "0 Followers";
+  }
+
+  if (num < 0) {
+    return `-${formatFollowers(Math.abs(num))}`;
+  }
+
+  const K = 1000;
+  const M = K * 1000;
+  const B = M * 1000;
+
+  let resultNum;
+  let suffix;
+
+  if (num < K) {
+    // As is
+    return `${num} Followers`;
+  } else if (num < M) {
+    // Thousands
+    resultNum = num / K;
+    suffix = "k";
+  } else if (num < B) {
+    // Millions
+    resultNum = num / M;
+    suffix = "m";
+  } else {
+    // Billions and above
+    resultNum = num / B;
+    suffix = "b";
+  }
+
+  const formattedString = resultNum.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+
+  return `${formattedString}${suffix} Followers`;
+};

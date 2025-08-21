@@ -4,7 +4,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { cookies } from "next/headers";
 import { Toaster } from "@/components/ui/sonner";
 import { Search } from "@/components/search";
-import AudioPlayer from "@/components/player";
+import { AudioPlayer } from "@/components/player";
 import Navbar from "@/components/navbar"
 
 export let metadata = {

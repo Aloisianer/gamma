@@ -99,6 +99,7 @@ export function Search() {
     let handleEnter = useCallback((e) => {
         if (e.key === "Enter" && containsUsefulInfo(query)) {
             router.push(`/search?query=${encodeURIComponent(query)}`);
+            setOpen(false);
         }
     }, [query, router]);
 

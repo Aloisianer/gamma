@@ -27,7 +27,7 @@ function newTrack(track) {
     let newTrack = new Track(
       "track",
       track.id,
-  track.artwork_url || track.user?.avatar_url || "404 Not Found",
+      track.artwork_url || track.user?.avatar_url || "404 Not Found",
       track.title,
       track.user.username,
       `/track?id=${track.id}`
@@ -37,7 +37,7 @@ function newTrack(track) {
     let newTrack = new Track(
       "track",
       track.id,
-  track.artwork_url || track.user?.avatar_url || "404 Not Found",
+      track.artwork_url || track.user?.avatar_url || "404 Not Found",
       "GO+ | " + track.title,
       track.user.username,
       `/track?id=${track.id}`
@@ -47,9 +47,9 @@ function newTrack(track) {
     let newTrack = new Track(
       "user",
       track.id,
-  track.avatar_url || "404 Not Found",
-      track.full_name,
+      track.avatar_url || "404 Not Found",
       track.username,
+      track.followers_count,
       `/user?id=${track.id}`
     )
     return newTrack
@@ -57,7 +57,7 @@ function newTrack(track) {
     let newTrack = new Track(
       "playlist",
       track.id,
-  track.artwork_url || (track.tracks && track.tracks[0]?.artwork_url) || (track.tracks && track.tracks[0]?.user?.avatar_url) || "404 Not Found",
+      track.artwork_url || (track.tracks && track.tracks[0]?.artwork_url) || (track.tracks && track.tracks[0]?.user?.avatar_url) || "404 Not Found",
       track.title,
       track.user.username,
       `/playlist?id=${track.id}`
@@ -67,7 +67,7 @@ function newTrack(track) {
     let newTrack = new Track(
       "unknown",
       Math.floor(10000 + Math.random() * 90000),
-  track.artwork_url || "404 Not Found",
+      track.artwork_url || "404 Not Found",
       "This Element is not yet supported",
       track.kind,
     )
@@ -150,7 +150,7 @@ app.prepare().then(async () => {
     }
   });
 
-    server.get('/api/track-info', async (req, res) => {
+  server.get('/api/track-info', async (req, res) => {
     try {
       let trackId = req.query.id;
       if (!trackId) return res.status(400).send('Missing trackId');
@@ -165,7 +165,7 @@ app.prepare().then(async () => {
       if (!res.headersSent) res.status(500).send('Internal Server Error');
     }
   });
-  
+
   // Image/avatar endpoints removed: avatars are handled client-side using SoundCloud URLs
 
   server.get('/api/search', async (req, res) => {
@@ -203,7 +203,7 @@ app.prepare().then(async () => {
       }
 
       let tracks = []
-      
+
       accumulatedData.collection.forEach(track => {
         tracks.push(newTrack(track))
       })
@@ -217,7 +217,7 @@ app.prepare().then(async () => {
     }
   })
 
-    server.get('/api/user-likes', async (req, res) => {
+  server.get('/api/user-likes', async (req, res) => {
     try {
       let id = req.query.id
       let amount = req.query.amount
@@ -252,7 +252,7 @@ app.prepare().then(async () => {
       }
 
       let tracks = []
-      
+
       accumulatedData.collection.forEach(track => {
         if (track.playlist) {
           tracks.push(newTrack(track.playlist))
@@ -270,7 +270,7 @@ app.prepare().then(async () => {
     }
   })
 
-    server.get('/api/user-playlists', async (req, res) => {
+  server.get('/api/user-playlists', async (req, res) => {
     try {
       let id = req.query.id
       let amount = req.query.amount
@@ -305,7 +305,7 @@ app.prepare().then(async () => {
       }
 
       let tracks = []
-      
+
       accumulatedData.collection.forEach(track => {
         tracks.push(newTrack(track))
       })
@@ -318,7 +318,7 @@ app.prepare().then(async () => {
     }
   })
 
-    server.get('/api/user-tracks', async (req, res) => {
+  server.get('/api/user-tracks', async (req, res) => {
     try {
       let recent = req.query.recent
       let id = req.query.id
@@ -328,7 +328,7 @@ app.prepare().then(async () => {
       if (!page) return res.status(400).send('Missing page');
 
       let currentUrl
-      
+
       if (recent === "1") {
         currentUrl = `https://api-v2.soundcloud.com/users/${id}/tracks?limit=${amount}&linked_partitioning=1`
       } else {
@@ -360,7 +360,7 @@ app.prepare().then(async () => {
       }
 
       let tracks = []
-      
+
       accumulatedData.collection.forEach(track => {
         tracks.push(newTrack(track))
       })

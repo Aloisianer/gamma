@@ -16,6 +16,7 @@ export default function TrackPage() {
             fetch(`/api/track-info?id=${id}`)
                 .then(response => response.json())
                 .then(data => {
+                    console.log(data)
                     setTrackData(data)
                     console.log(data)
                 })
@@ -34,7 +35,8 @@ export default function TrackPage() {
                         try { return art.replaceAll('large', 't500x500') } catch(e) { return art }
                     })()}
                     title={trackData.title}
-                    creator={trackData.user.username}
+                    creator={trackData.user}
+                    description={trackData.description}
                 />
             ) : (
                 <Ring

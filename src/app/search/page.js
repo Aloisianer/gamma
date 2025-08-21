@@ -65,6 +65,7 @@ export default function Home() {
                 })
                 .then(data => {
                     if (!signal.aborted) {
+                        console.log(data.tracks)
                         setResults(data.tracks || []);
                     }
                 })
@@ -94,43 +95,43 @@ export default function Home() {
                 />
             </Command>
             <div className="flex justify-center place-items-center ml-5 mr-5">
-                    {results.length > 0 ? (
-                        <div>
-                <div className="grid lg:grid-cols-7 md:grid-cols-5 grid-cols-2 gap-5">
-                                {results.map((item) => (
-                                    <Track
-                                        key={item.id}
-                                        id={item.id}
-                                        artwork={item.artwork}
-                                        title={item.title}
-                                        creator={item.creator}
-                                        link={item.link}
-                                        type={item.type}
-                                    />
-                                ))}
-                            </div>
-                            <div className="flex justify-center place-items-center gap-5 mb-6 mt-3">
-                                {page > 1 ? (
-                                    <Button onClick={loadPreviousPage}>
-                                        Back
-                                    </Button>
-                                ) : (
-                                    <Button disabled>
-                                        Back
-                                    </Button>
-                                )}
-                                <div className="px-4 py-2 bg-muted rounded-md">
-                                    Page {page}
-                                </div>
-                                <Button onClick={loadNextPage}>
-                                    Next
-                                </Button>
-                            </div>
+                {results.length > 0 ? (
+                    <div>
+                        <div className="grid lg:grid-cols-7 md:grid-cols-5 grid-cols-2 gap-5">
+                            {results.map((item) => (
+                                <Track
+                                    key={item.id}
+                                    id={item.id}
+                                    artwork={item.artwork}
+                                    title={item.title}
+                                    subtitle={item.creator}
+                                    link={item.link}
+                                    type={item.type}
+                                />
+                            ))}
                         </div>
-                    ) : containsUsefulInfo(query) ? (
-                        <p>Nothing found</p>
-                    ) : null}
-                </div>
+                        <div className="flex justify-center place-items-center gap-5 mb-6 mt-3">
+                            {page > 1 ? (
+                                <Button onClick={loadPreviousPage}>
+                                    Back
+                                </Button>
+                            ) : (
+                                <Button disabled>
+                                    Back
+                                </Button>
+                            )}
+                            <div className="px-4 py-2 bg-muted rounded-md">
+                                Page {page}
+                            </div>
+                            <Button onClick={loadNextPage}>
+                                Next
+                            </Button>
+                        </div>
+                    </div>
+                ) : containsUsefulInfo(query) ? (
+                    <p>Nothing found</p>
+                ) : null}
+            </div>
         </div>
     )
 }
