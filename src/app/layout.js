@@ -8,6 +8,7 @@ import { Search } from "@/components/search";
 import { AudioPlayer } from "@/components/player";
 import Navbar from "@/components/navbar"
 import { Skeleton } from "@/components/ui/skeleton";
+import SafeContainsPatch from "@/components/safe-contains-patch";
 
 export let metadata = {
   title: "I need a name for this",
@@ -24,6 +25,8 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={'antialiased dark w-full h-full'}>
+  {/* Global DOM patch to avoid Node.contains errors in third-party libs */}
+  <SafeContainsPatch />
         <SidebarProvider>
           <AppSidebar />
           <main className="w-full h-full">

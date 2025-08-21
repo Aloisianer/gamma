@@ -68,7 +68,7 @@ export function Search() {
         let signal = abortControllerRef.current.signal;
 
         timerRef.current = setTimeout(() => {
-            fetch(`/api/search?page=${page}&amount=8&query=${encodeURIComponent(query)}`, {
+            fetch(`/api/search?page=${page}&amount=16&query=${encodeURIComponent(query)}`, {
                 signal
             })
                 .then(res => {
@@ -84,6 +84,7 @@ export function Search() {
                 .catch(() => {
                     if (!signal.aborted) {
                         setResults([]);
+                        setLoading(false);
                     }
                 });
         }, 150);
@@ -113,8 +114,14 @@ export function Search() {
         setPage(prev => Math.max(1, prev - 1));
     }, []);
 
+    let hasResults = results.length > 0;
+
     return (
-        <CommandDialog open={open} onOpenChange={setOpen}>
+        <CommandDialog
+            open={open}
+            onOpenChange={setOpen}
+            className={hasResults ? "[&_[data-slot=command-input-wrapper]]:h-14 [&_[data-slot=command-input]]:h-14" : undefined}
+        >
             <CommandInput
                 placeholder="Search for a song..."
                 value={query}
@@ -133,7 +140,7 @@ export function Search() {
                     go
                 </Link>
             ) : null}
-            <CommandList>
+            <CommandList className={hasResults ? "max-h-[70vh]" : undefined}>
                 {results.length > 0 ? (
                     <div>
                         <div className="grid grid-cols-4 gap-3 p-3">
