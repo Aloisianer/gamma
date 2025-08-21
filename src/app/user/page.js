@@ -3,15 +3,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Track, MediumTrack } from "@/components/track"
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button"
-import { useRouter } from 'next/navigation';
 
 export default function Home() {
     let [likes, setLikes] = useState([]);
     let [tracks, setTracks] = useState([]);
     let searchParams = useSearchParams();
     let id = searchParams.get("id");
-    let router = useRouter()
 
     useEffect(() => {
         fetch(`/api/user-likes?page=1&amount=5&id=${id}`, {})
@@ -48,9 +47,9 @@ export default function Home() {
     return (
         <div className="pb-8 p-3 w-full">
             <p className="text-red-300">THIS IS UNDER CONSTRUCTION!</p>
-            <Button
-                onClick={() => router.push(`/user-likes?id=${id}`)}
-            >Likes</Button>
+            <Button asChild>
+                <Link prefetch={true} href={`/user-likes?id=${id}`}>Likes</Link>
+            </Button>
             <div>
                 {likes.length > 0 ? (
                     <div>
@@ -73,9 +72,9 @@ export default function Home() {
                 )}
             </div>
 
-            <Button
-                onClick={() => router.push(`/user-tracks?id=${id}`)}
-            >Top Tracks</Button>
+            <Button asChild>
+                <Link prefetch={true} href={`/user-tracks?id=${id}`}>Top Tracks</Link>
+            </Button>
             <div className="flex justify-center place-items-center ml-5 mr-5">
                 {tracks.length > 0 ? (
                     <div>

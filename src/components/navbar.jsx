@@ -18,7 +18,7 @@ export default function Navbar() {
       <NavigationMenuList>
         <NavigationMenuItem>
           <NavigationMenuLink asChild>
-            <Link href="/search">Search</Link>
+            <Link prefetch={true} href="/search">Search</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>

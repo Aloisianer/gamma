@@ -1,4 +1,5 @@
 import "./globals.css";
+import { Suspense } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { cookies } from "next/headers";
@@ -6,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Search } from "@/components/search";
 import { AudioPlayer } from "@/components/player";
 import Navbar from "@/components/navbar"
+import { Skeleton } from "@/components/ui/skeleton";
 
 export let metadata = {
   title: "I need a name for this",
@@ -26,7 +28,16 @@ export default async function RootLayout({ children }) {
           <AppSidebar />
           <main className="w-full h-full">
             <AudioPlayer />
-            {children}
+            <Suspense
+              fallback={
+                <div className="p-4 space-y-4">
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-48 w-full" />
+                </div>
+              }
+            >
+              {children}
+            </Suspense>
           </main>
         </SidebarProvider>
         <Toaster />

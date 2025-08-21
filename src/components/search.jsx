@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Track } from "@/components/track";
 import {
     Command,
@@ -20,9 +20,9 @@ export function Search() {
     let [query, setQuery] = useState('');
     let [loading, setLoading] = useState(false);
     let [page, setPage] = useState(1);
-    let router = useRouter();
     let timerRef = useRef(null);
     let abortControllerRef = useRef(null);
+    let linkRef = useRef(null);
 
     let resetState = useCallback(() => {
         setQuery('');
@@ -98,10 +98,12 @@ export function Search() {
 
     let handleEnter = useCallback((e) => {
         if (e.key === "Enter" && containsUsefulInfo(query)) {
-            router.push(`/search?query=${encodeURIComponent(query)}`);
+            if (linkRef.current) {
+                linkRef.current.click();
+            }
             setOpen(false);
         }
-    }, [query, router]);
+    }, [query]);
 
     let loadNextPage = useCallback(() => {
         setPage(prev => prev + 1);
@@ -119,6 +121,18 @@ export function Search() {
                 onValueChange={setQuery}
                 onKeyDown={handleEnter}
             />
+            {containsUsefulInfo(query) ? (
+                <Link
+                    prefetch={true}
+                    href={`/search?query=${encodeURIComponent(query)}`}
+                    ref={linkRef}
+                    aria-hidden
+                    tabIndex={-1}
+                    style={{ display: 'none' }}
+                >
+                    go
+                </Link>
+            ) : null}
             <CommandList>
                 {results.length > 0 ? (
                     <div>
