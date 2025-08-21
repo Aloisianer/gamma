@@ -32,7 +32,7 @@ export function AppSidebar() {
                         <SidebarMenu className="ml-[0.49]">
                             {items.map((item) => (
                                 <SidebarMenuItem key={item.title}>
-                                    <SidebarMenuButton asChild>
+                                    <SidebarMenuButton tooltip={item.title} asChild>
                                         <Link prefetch={true} href={item.url}>
                                             <item.icon />
                                             <span>{item.title}</span>
