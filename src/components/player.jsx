@@ -122,16 +122,16 @@ export let AudioPlayer = forwardRef((props, ref) => {
 
       ws = WaveSurfer.create({
         container: waveformRef.current,
-        waveColor: "oklch(.208 .042 265.755)",
-        progressColor: "#fff",
-        height: 40,
+        waveColor: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
+        progressColor: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim(),
+        height: 35,
         interact: true,
-        cursorWidth: 1,
-        cursorColor: "#fff",
+        cursorWidth: 2,
+        cursorColor: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim(),
         barWidth: 2,
         barGap: -1,
-        barRadius: 2,
-        volume: 0, // set to 0 then apply stored volume
+        barRadius: 15,
+        volume: 0,
       });
 
       wavesurferRef.current = ws;
@@ -401,7 +401,7 @@ export let AudioPlayer = forwardRef((props, ref) => {
     <div className="sticky top-0 w-full p-3 z-50">
       <div
         ref={playerContainerRef}
-        className="bg-background pt-2 flex items-center space-x-2 p-2 border border-input rounded-2xl w-full flex-col"
+        className="bg-sidebar pt-2 flex items-center space-x-2 p-2 border rounded-2xl w-full flex-col shadow-2xl"
       >
         <div className="relative flex items-center w-full space-x-2">
           {/* Back */}
