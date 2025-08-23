@@ -20,19 +20,22 @@ export default function Home() {
     }, []);
 
     useEffect(() => {
-        fetch(`/api/user-tracks?page=${page}&id=${id}`, {})
+        const ac = new AbortController();
+        fetch(`/api/user-tracks?page=${page}&id=${id}`, { signal: ac.signal })
             .then(res => {
                 if (!res.ok) throw new Error('Failed to fetch');
                 return res.json();
             })
             .then(data => {
+                if (ac.signal.aborted) return;
                 setResults(data.tracks || []);
             })
             .catch(() => {
+                if (ac.signal.aborted) return;
                 setResults([]);
             });
 
-        return () => { };
+        return () => { ac.abort(); };
     }, [id, page]);
 
 

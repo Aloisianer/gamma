@@ -231,19 +231,24 @@ export let AudioPlayer = forwardRef((props, ref) => {
   // Fetch artwork
   useEffect(() => {
     if (!currentTrackId) return;
+    const ac = new AbortController();
     let cancelled = false;
 
-    fetch(`/api/track-info?id=${currentTrackId}`)
+    fetch(`/api/track-info?id=${currentTrackId}`, { signal: ac.signal })
       .then((r) => r.json())
       .then((data) => {
-        if (cancelled) return;
+        if (cancelled || ac.signal.aborted) return;
         const artwork = data.artwork_url || data.user?.avatar_url || null;
         setCurrentArtwork(artwork || null);
       })
-      .catch(() => setCurrentArtwork(null));
+      .catch(() => {
+        if (ac.signal.aborted || cancelled) return;
+        setCurrentArtwork(null);
+      });
 
     return () => {
       cancelled = true;
+      ac.abort();
     };
   }, [currentTrackId]);
 

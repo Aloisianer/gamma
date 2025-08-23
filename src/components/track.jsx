@@ -178,17 +178,29 @@ export function Track({ type, id, artwork, title, subtitle, variant, link }) {
   const [imageSrc, setImageSrc] = useState(placeholderImage);
 
   useEffect(() => {
-    if (artwork && artwork !== "404 Not Found") {
-      fetch(artwork)
-        .then((response) => {
-          if (response.ok) {
-            setImageSrc(artwork);
-          } else {
-            setImageSrc(placeholderImage);
-          }
-        })
-        .catch(() => setImageSrc(placeholderImage));
-    }
+    if (!artwork || artwork === "404 Not Found") return;
+
+    const ac = new AbortController();
+    let cancelled = false;
+
+    fetch(artwork, { signal: ac.signal })
+      .then((response) => {
+        if (ac.signal.aborted || cancelled) return;
+        if (response.ok) {
+          setImageSrc(artwork);
+        } else {
+          setImageSrc(placeholderImage);
+        }
+      })
+      .catch(() => {
+        if (ac.signal.aborted || cancelled) return;
+        setImageSrc(placeholderImage);
+      });
+
+    return () => {
+      cancelled = true;
+      ac.abort();
+    };
   }, [artwork]);
 
   return (
@@ -248,17 +260,29 @@ export function Comment({ artwork, title, link, text }) {
   const [imageSrc, setImageSrc] = useState(placeholderImage);
 
   useEffect(() => {
-    if (artwork && artwork !== "404 Not Found") {
-      fetch(artwork)
-        .then((response) => {
-          if (response.ok) {
-            setImageSrc(artwork);
-          } else {
-            setImageSrc(placeholderImage);
-          }
-        })
-        .catch(() => setImageSrc(placeholderImage));
-    }
+    if (!artwork || artwork === "404 Not Found") return;
+
+    const ac = new AbortController();
+    let cancelled = false;
+
+    fetch(artwork, { signal: ac.signal })
+      .then((response) => {
+        if (ac.signal.aborted || cancelled) return;
+        if (response.ok) {
+          setImageSrc(artwork);
+        } else {
+          setImageSrc(placeholderImage);
+        }
+      })
+      .catch(() => {
+        if (ac.signal.aborted || cancelled) return;
+        setImageSrc(placeholderImage);
+      });
+
+    return () => {
+      cancelled = true;
+      ac.abort();
+    };
   }, [artwork]);
 
   return (
@@ -293,37 +317,53 @@ export function BigTrack({ id }) {
   let [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (artwork && artwork !== "404 Not Found") {
-      fetch(artwork)
-        .then((response) => {
-          if (response.ok) {
-            setImageSrc(artwork);
-          } else {
-            setImageSrc(placeholderImage);
-          }
-        })
-        .catch(() => setImageSrc(placeholderImage));
-    }
+    if (!artwork || artwork === "404 Not Found") return;
+
+    const ac = new AbortController();
+    let cancelled = false;
+
+    fetch(artwork, { signal: ac.signal })
+      .then((response) => {
+        if (ac.signal.aborted || cancelled) return;
+        if (response.ok) {
+          setImageSrc(artwork);
+        } else {
+          setImageSrc(placeholderImage);
+        }
+      })
+      .catch(() => {
+        if (ac.signal.aborted || cancelled) return;
+        setImageSrc(placeholderImage);
+      });
+
+    return () => {
+      cancelled = true;
+      ac.abort();
+    };
   }, [artwork]);
 
   useEffect(() => {
-    fetch(`/api/track-info?id=${id}&page=${page}&amount=20`)
+    const ac = new AbortController();
+    setLoading(true);
+
+    fetch(`/api/track-info?id=${id}&page=${page}&amount=20`, { signal: ac.signal })
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch');
         return res.json();
       })
       .then(data => {
+        if (ac.signal.aborted) return;
         let tagListArray = [];
         let tagListRegex = /"([^"]*)"/g;
         let match;
 
-        setArtwork(data.artwork_url.replaceAll('large', 't1080x1080') || placeholderImage);
+        setArtwork((data.artwork_url || "").replaceAll('large', 't1080x1080') || placeholderImage);
         setTitle(data.title || "Unknown Title");
         setDescription(data.description || "");
         setCreator(data.user || { id: "", username: "Unknown User", avatar_url: placeholderImage });
         setComments(data.comments || []);
 
-        while ((match = tagListRegex.exec(data.tag_list)) !== null) {
+        while ((match = tagListRegex.exec(data.tag_list || "")) !== null) {
           tagListArray.push(match[1]);
         }
 
@@ -331,9 +371,14 @@ export function BigTrack({ id }) {
         setLoading(false);
       })
       .catch(() => {
+        if (ac.signal.aborted) return;
         setLoading(false);
       });
-  }, [page])
+
+    return () => {
+      ac.abort();
+    };
+  }, [id, page])
 
   let loadNextPage = useCallback(() => {
     setPage(prev => prev + 1);
@@ -396,17 +441,29 @@ export function MediumTrack({ type, id, artwork, title, subtitle, link }) {
   const [imageSrc, setImageSrc] = useState(placeholderImage);
 
   useEffect(() => {
-    if (artwork && artwork !== "404 Not Found") {
-      fetch(artwork)
-        .then((response) => {
-          if (response.ok) {
-            setImageSrc(artwork);
-          } else {
-            setImageSrc(placeholderImage);
-          }
-        })
-        .catch(() => setImageSrc(placeholderImage));
-    }
+    if (!artwork || artwork === "404 Not Found") return;
+
+    const ac = new AbortController();
+    let cancelled = false;
+
+    fetch(artwork, { signal: ac.signal })
+      .then((response) => {
+        if (ac.signal.aborted || cancelled) return;
+        if (response.ok) {
+          setImageSrc(artwork);
+        } else {
+          setImageSrc(placeholderImage);
+        }
+      })
+      .catch(() => {
+        if (ac.signal.aborted || cancelled) return;
+        setImageSrc(placeholderImage);
+      });
+
+    return () => {
+      cancelled = true;
+      ac.abort();
+    };
   }, [artwork]);
 
   return (
@@ -434,17 +491,29 @@ export function SmallTrack({ id, artwork, title, link }) {
   const [imageSrc, setImageSrc] = useState(placeholderImage);
 
   useEffect(() => {
-    if (artwork && artwork !== "404 Not Found") {
-      fetch(artwork)
-        .then((response) => {
-          if (response.ok) {
-            setImageSrc(artwork);
-          } else {
-            setImageSrc(placeholderImage);
-          }
-        })
-        .catch(() => setImageSrc(placeholderImage));
-    }
+    if (!artwork || artwork === "404 Not Found") return;
+
+    const ac = new AbortController();
+    let cancelled = false;
+
+    fetch(artwork, { signal: ac.signal })
+      .then((response) => {
+        if (ac.signal.aborted || cancelled) return;
+        if (response.ok) {
+          setImageSrc(artwork);
+        } else {
+          setImageSrc(placeholderImage);
+        }
+      })
+      .catch(() => {
+        if (ac.signal.aborted || cancelled) return;
+        setImageSrc(placeholderImage);
+      });
+
+    return () => {
+      cancelled = true;
+      ac.abort();
+    };
   }, [artwork]);
 
   return (

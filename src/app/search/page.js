@@ -65,7 +65,6 @@ export default function Home() {
                 })
                 .then(data => {
                     if (!signal.aborted) {
-                        console.log(data.tracks)
                         setResults(data.tracks || []);
                     }
                 })

@@ -13,35 +13,41 @@ export default function Home() {
     let id = searchParams.get("id");
 
     useEffect(() => {
-        fetch(`/api/user-likes?page=1&amount=5&id=${id}`, {})
+        const ac = new AbortController();
+        fetch(`/api/user-likes?page=1&amount=5&id=${id}`, { signal: ac.signal })
             .then(res => {
                 if (!res.ok) throw new Error('Failed to fetch');
                 return res.json();
             })
             .then(data => {
+                if (ac.signal.aborted) return;
                 setLikes(data.tracks || []);
             })
             .catch(() => {
+                if (ac.signal.aborted) return;
                 setLikes([]);
             });
 
-        return () => { };
+        return () => { ac.abort(); };
     }, [id]);
 
     useEffect(() => {
-        fetch(`/api/user-tracks?page=1&id=${id}`, {})
+        const ac = new AbortController();
+        fetch(`/api/user-tracks?page=1&id=${id}`, { signal: ac.signal })
             .then(res => {
                 if (!res.ok) throw new Error('Failed to fetch');
                 return res.json();
             })
             .then(data => {
+                if (ac.signal.aborted) return;
                 setTracks(data.tracks || []);
             })
             .catch(() => {
+                if (ac.signal.aborted) return;
                 setTracks([]);
             });
 
-        return () => { };
+        return () => { ac.abort(); };
     }, [id]);
 
     return (
