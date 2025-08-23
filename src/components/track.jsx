@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Fragment } from "react";
+import { useEffect, useState, Fragment, useCallback } from "react";
 import {
   Card,
   CardAction,
@@ -64,6 +64,32 @@ const ImageInspector = ({ src, alt }) => {
 
 function Description({ text }) {
   const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+  const [expanded, setExpanded] = useState(false);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  const [containerId] = useState(() => `desc-${Math.random().toString(36).slice(2)}`);
+  const [measuredHeight, setMeasuredHeight] = useState(0);
+  const collapsedStyle = "12.7rem";
+
+  useEffect(() => {
+    if (!text) return;
+
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const p = container.querySelector("p");
+    if (!p) return;
+
+    const check = () => {
+      const scrollH = p.scrollHeight;
+      setMeasuredHeight(scrollH);
+      setIsOverflowing(scrollH > parseFloat(getComputedStyle(document.documentElement).fontSize || 16) * 5.5 + 1);
+    };
+
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(p);
+
+    return () => ro.disconnect();
+  }, [text, containerId]);
 
   const renderDescriptionWithLinks = (text) => {
     if (!text) return null;
@@ -100,15 +126,44 @@ function Description({ text }) {
       parts.push(text.substring(lastIndex));
     }
 
-    return parts.map((part, index) => (
-      <Fragment key={index}>{part}</Fragment>
-    ));
+    return parts.map((part, index) => <Fragment key={index}>{part}</Fragment>);
   };
 
+  if (!text) return null;
+
+  const maxHeightStyle = expanded ? `${measuredHeight}px` : collapsedStyle;
+
   return (
-    <p className="text-sm whitespace-pre-wrap">
-      {renderDescriptionWithLinks(text)}
-    </p>
+    <div>
+      <div id={containerId} className="relative">
+        <p
+          className="text-sm whitespace-pre-wrap overflow-hidden"
+          style={{
+            maxHeight: maxHeightStyle,
+            transition: "max-height 290ms ease, opacity 290ms ease",
+            opacity: expanded ? 1 : 1,
+          }}
+        >
+          {renderDescriptionWithLinks(text)}
+        </p>
+
+        {!expanded && isOverflowing && (
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-card/100 to-transparent" />
+        )}
+      </div>
+
+      {(isOverflowing || expanded) && (
+        <div className="mt-2 text-right">
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            className="text-xs hover:underline"
+            aria-expanded={expanded}
+          >
+            {expanded ? "Show less" : "Show more"}
+          </button>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -180,9 +235,9 @@ export function Track({ type, id, artwork, title, subtitle, variant, link }) {
       </CardContent>
     </Card>
   );
-}
+};
 
-export function BigTrack({ id, artwork, title, subtitle, description, creator }) {
+export function Comment({ artwork, title, link, text }) {
   const [imageSrc, setImageSrc] = useState(placeholderImage);
 
   useEffect(() => {
@@ -200,8 +255,79 @@ export function BigTrack({ id, artwork, title, subtitle, description, creator })
   }, [artwork]);
 
   return (
-    <Card className="w-full m-5 p-5">
-      <CardHeader>
+    <Card className="bg-secondary p-0">
+      <div className="flex items-center">
+        <Link prefetch={true} href={link}>
+          <img
+            src={imageSrc}
+            alt={title}
+            className="w-full p-3 max-h-18 min-h-10 object-cover cursor-pointer rounded-full"
+            onError={() => setImageSrc(placeholderImage)}
+          />
+        </Link>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-bold">{title}</p>
+          <p className="text-sm">{text}</p>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+export function BigTrack({ id }) {
+  let [imageSrc, setImageSrc] = useState(placeholderImage);
+  let [page, setPage] = useState(1);
+  let [artwork, setArtwork] = useState(placeholderImage);
+  let [title, setTitle] = useState("Loading...");
+  let [description, setDescription] = useState("");
+  let [creator, setCreator] = useState({ id: "", username: "", avatar: "" });
+  let [comments, setComments] = useState([]);
+  let [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (artwork && artwork !== "404 Not Found") {
+      fetch(artwork)
+        .then((response) => {
+          if (response.ok) {
+            setImageSrc(artwork);
+          } else {
+            setImageSrc(placeholderImage);
+          }
+        })
+        .catch(() => setImageSrc(placeholderImage));
+    }
+  }, [artwork]);
+
+  useEffect(() => {
+    fetch(`/api/track-info?id=${id}&page=${page}&amount=20`)
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch');
+        return res.json();
+      })
+      .then(data => {
+        setArtwork(data.artwork_url.replaceAll('large', 't1080x1080') || placeholderImage);
+        setTitle(data.title || "Unknown Title");
+        setDescription(data.description || "");
+        setCreator(data.user || { id: "", username: "Unknown User", avatar_url: placeholderImage });
+        setComments(data.comments || []);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+  }, [page])
+
+  let loadNextPage = useCallback(() => {
+    setPage(prev => prev + 1);
+  }, []);
+
+  let loadPreviousPage = useCallback(() => {
+    setPage(prev => Math.max(1, prev - 1));
+  }, []);
+
+  return (
+    <Card className="w-full p-6">
+      <CardHeader className="p-0">
         <div className="p-0 flex gap-5">
           <ImageInspector
             src={imageSrc}
@@ -215,12 +341,12 @@ export function BigTrack({ id, artwork, title, subtitle, description, creator })
             <PlayIcon />
           </Button>
           <div className="flex flex-col w-150 gap-3">
-            <p className="text-lg">{title}</p>
+            <p className="text-xl font-bold">{title}</p>
             <Description text={description} />
           </div>
         </div>
         <CardAction>
-          <div className="">
+          <div className="pl-5">
             <Track
               type="user"
               id={creator.id}
@@ -233,9 +359,20 @@ export function BigTrack({ id, artwork, title, subtitle, description, creator })
           </div>
         </CardAction>
       </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {comments.map((comment) => (
+          <Comment
+            key={comment.id}
+            artwork={comment.user.avatar_url}
+            title={comment.user.username}
+            text={comment.body}
+            link={`/user?id=${comment.user.id}`}
+          />
+        ))}
+      </CardContent>
     </Card>
   );
-}
+};
 
 export function MediumTrack({ type, id, artwork, title, subtitle, link }) {
   const [imageSrc, setImageSrc] = useState(placeholderImage);
@@ -273,7 +410,7 @@ export function MediumTrack({ type, id, artwork, title, subtitle, link }) {
       />
     </Button>
   );
-}
+};
 
 export function SmallTrack({ id, artwork, title, link }) {
   const [imageSrc, setImageSrc] = useState(placeholderImage);
@@ -309,4 +446,4 @@ export function SmallTrack({ id, artwork, title, link }) {
       </Link>
     </Button>
   );
-}
+};

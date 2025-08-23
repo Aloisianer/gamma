@@ -143,7 +143,9 @@ export function Search() {
             <CommandList className={hasResults ? "max-h-[70vh]" : undefined}>
                 {results.length > 0 ? (
                     <div>
-                        <div className="grid grid-cols-4 gap-3 p-3">
+                        <div className="grid grid-cols-4 gap-3 p-3" onClick={() => {
+                            setOpen(false);
+                        }}>
                             {results.map((item) => (
                                 <Track
                                     key={item.id}

@@ -152,21 +152,51 @@ app.prepare().then(async () => {
 
   server.get('/api/track-info', async (req, res) => {
     try {
+      let amount = req.query.amount;
+      let page = req.query.page;
       let trackId = req.query.id;
+      if (!amount) return res.status(400).send('Missing amount');
+      if (!page) return res.status(400).send('Missing page');
       if (!trackId) return res.status(400).send('Missing trackId');
+
+      let currentCommentUrl = `https://api-v2.soundcloud.com/tracks/${trackId}/comments?sort=newest&limit=${amount}&app_version=1755683871&app_locale=en&threaded=1`;
+
+      let accumulatedData;
+
+      for (let i = 0; i < page; i++) {
+        try {
+          let response = await fetch(`${currentCommentUrl}&client_id=${clientId}`);
+          console.log(`${currentCommentUrl}&client_id=${clientId}`)
+
+          if (!response.ok) {
+            res.status(response.status).send(response.text())
+            return;
+          }
+
+          let data = await response.json();
+
+          if (i === page - 1) {
+            accumulatedData = data.collection;
+          } else {
+            currentCommentUrl = data.next_href;
+          }
+        } catch (error) {
+          console.error(`Error on fetch ${i + 1}:`, error);
+          return;
+        }
+      }
 
       let trackRes = await fetch(
         `https://api-v2.soundcloud.com/tracks/${trackId}?client_id=${clientId}`
       );
+
       let trackData = await trackRes.json();
-      res.json(trackData)
+      res.json({ page, ...trackData, comments: accumulatedData });
     } catch (error) {
       console.error('Track processing error:', error);
       if (!res.headersSent) res.status(500).send('Internal Server Error');
     }
   });
-
-  // Image/avatar endpoints removed: avatars are handled client-side using SoundCloud URLs
 
   server.get('/api/search', async (req, res) => {
     try {
@@ -207,10 +237,8 @@ app.prepare().then(async () => {
       accumulatedData.collection.forEach(track => {
         tracks.push(newTrack(track))
       })
-      res.send({
-        "page": page,
-        "tracks": tracks
-      })
+
+      res.send({ page, tracks })
     } catch (error) {
       console.log(error)
       res.status(500).send('Internal Server Error');
@@ -260,10 +288,7 @@ app.prepare().then(async () => {
           tracks.push(newTrack(track.track))
         }
       })
-      res.send({
-        "page": page,
-        "tracks": tracks
-      })
+      res.send({ page, tracks })
     } catch (error) {
       console.log(error)
       res.status(500).send('Internal Server Error');
@@ -309,10 +334,7 @@ app.prepare().then(async () => {
       accumulatedData.collection.forEach(track => {
         tracks.push(newTrack(track))
       })
-      res.send({
-        "page": page,
-        "tracks": tracks
-      })
+      res.send({ page, tracks })
     } catch (error) {
       res.status(500).send('Internal Server Error');
     }
@@ -364,10 +386,7 @@ app.prepare().then(async () => {
       accumulatedData.collection.forEach(track => {
         tracks.push(newTrack(track))
       })
-      res.send({
-        "page": page,
-        "tracks": tracks
-      })
+      res.send({ page, tracks })
     } catch (error) {
       console.log(error)
       res.status(500).send('Internal Server Error');
