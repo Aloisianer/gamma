@@ -233,7 +233,7 @@ export function Track({ type, id, artwork, title, subtitle, variant, link }) {
         ) : null}
         <div className="mt-2 text-center">
           <CardTitle className="text-[15px] overflow-ellipsis truncated-text overflow-hidden whitespace-nowrap pl-2 pr-2">
-            {title}
+            <Link href={link} prefetch>{title}</Link>
           </CardTitle>
           <CardDescription className="text-[12px] text-gray-500 pb-2">
             {type === "user" && subtitle ? formatFollowers(subtitle) : subtitle}
