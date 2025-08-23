@@ -5,13 +5,13 @@ import { useEffect } from "react";
 export default function SafeContainsPatch() {
   useEffect(() => {
     try {
-      const proto = typeof Node !== "undefined" ? Node.prototype : null;
+      let proto = typeof Node !== "undefined" ? Node.prototype : null;
       if (!proto) return;
 
-      const FLAG = "__safeContainsPatched__";
+      let FLAG = "__safeContainsPatched__";
       if (proto[FLAG]) return; // already patched
 
-      const original = proto.contains;
+      let original = proto.contains;
       if (typeof original !== "function") return;
 
       Object.defineProperty(proto, FLAG, {

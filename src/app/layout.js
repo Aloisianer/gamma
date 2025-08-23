@@ -1,11 +1,9 @@
 import "./globals.css";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { cookies } from "next/headers";
 import { Toaster } from "@/components/ui/sonner";
 import { Search } from "@/components/search";
 import { AudioPlayer } from "@/components/player";
-import Navbar from "@/components/navbar"
 import SafeContainsPatch from "@/components/safe-contains-patch";
 
 export let metadata = {
@@ -23,8 +21,7 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={'antialiased dark w-full h-full'}>
-  {/* Global DOM patch to avoid Node.contains errors in third-party libs */}
-  <SafeContainsPatch />
+        <SafeContainsPatch />
         <SidebarProvider>
           <AppSidebar />
           <main className="w-full h-full">

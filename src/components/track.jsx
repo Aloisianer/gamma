@@ -12,7 +12,7 @@ import {
 import { socket } from "@/socket";
 import { cva } from "class-variance-authority";
 import { cn, formatFollowers } from "@/lib/utils";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { PlayIcon } from "lucide-react";
 import Link from 'next/link';
@@ -38,8 +38,8 @@ let variants = cva(
   }
 )
 
-const ImageInspector = ({ src, alt }) => {
-  const [selectedImage, setSelectedImage] = useState(null);
+let ImageInspector = ({ src, alt }) => {
+  let [selectedImage, setSelectedImage] = useState(null);
 
   return (
     <div>
@@ -58,55 +58,58 @@ const ImageInspector = ({ src, alt }) => {
             <img src={selectedImage} alt={alt} className="w-full h-auto rounded-md" />
           )}
         </DialogContent>
+        <DialogDescription hidden>
+          {alt}
+        </DialogDescription>
       </Dialog>
     </div>
   );
 };
 
 function Description({ text, tags }) {
-  const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
-  const [expanded, setExpanded] = useState(false);
-  const [isOverflowing, setIsOverflowing] = useState(false);
-  const [containerId] = useState(() => `desc-${Math.random().toString(36).slice(2)}`);
-  const [measuredHeight, setMeasuredHeight] = useState(0);
-  const collapsedStyle = "12.7rem";
+  let urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+  let [expanded, setExpanded] = useState(false);
+  let [isOverflowing, setIsOverflowing] = useState(false);
+  let [containerId] = useState(() => `desc-${Math.random().toString(36).slice(2)}`);
+  let [measuredHeight, setMeasuredHeight] = useState(0);
+  let collapsedStyle = "12.7rem";
 
   useEffect(() => {
     if (!text) return;
 
-    const container = document.getElementById(containerId);
+    let container = document.getElementById(containerId);
     if (!container) return;
-    const p = container.querySelector("p");
+    let p = container.querySelector("p");
     if (!p) return;
 
-    const check = () => {
-      const scrollH = p.scrollHeight;
+    let check = () => {
+      let scrollH = p.scrollHeight;
       setMeasuredHeight(scrollH);
       setIsOverflowing(scrollH > parseFloat(getComputedStyle(document.documentElement).fontSize || 16) * 5.5 + 1);
     };
 
     check();
-    const ro = new ResizeObserver(check);
+    let ro = new ResizeObserver(check);
     ro.observe(p);
 
     return () => ro.disconnect();
   }, [text, containerId]);
 
-  const renderDescriptionWithLinks = (text) => {
+  let renderDescriptionWithLinks = (text) => {
     if (!text) return null;
 
-    const parts = [];
+    let parts = [];
     let lastIndex = 0;
     let match;
 
     while ((match = urlRegex.exec(text)) !== null) {
-      const url = match[0];
+      let url = match[0];
 
       if (match.index > lastIndex) {
         parts.push(text.substring(lastIndex, match.index));
       }
 
-      const href = url.startsWith("http") ? url : `http://${url}`;
+      let href = url.startsWith("http") ? url : `http://${url}`;
 
       parts.push(
         <a
@@ -132,7 +135,7 @@ function Description({ text, tags }) {
 
   if (!text) return null;
 
-  const maxHeightStyle = expanded ? `${measuredHeight}px` : collapsedStyle;
+  let maxHeightStyle = expanded ? `${measuredHeight}px` : collapsedStyle;
 
   return (
     <div>
@@ -175,12 +178,12 @@ function Description({ text, tags }) {
 };
 
 export function Track({ type, id, artwork, title, subtitle, variant, link }) {
-  const [imageSrc, setImageSrc] = useState(placeholderImage);
+  let [imageSrc, setImageSrc] = useState(placeholderImage);
 
   useEffect(() => {
     if (!artwork || artwork === "404 Not Found") return;
 
-    const ac = new AbortController();
+    let ac = new AbortController();
     let cancelled = false;
 
     fetch(artwork, { signal: ac.signal })
@@ -257,12 +260,12 @@ export function Track({ type, id, artwork, title, subtitle, variant, link }) {
 };
 
 export function Comment({ artwork, title, link, text }) {
-  const [imageSrc, setImageSrc] = useState(placeholderImage);
+  let [imageSrc, setImageSrc] = useState(placeholderImage);
 
   useEffect(() => {
     if (!artwork || artwork === "404 Not Found") return;
 
-    const ac = new AbortController();
+    let ac = new AbortController();
     let cancelled = false;
 
     fetch(artwork, { signal: ac.signal })
@@ -319,7 +322,7 @@ export function BigTrack({ id }) {
   useEffect(() => {
     if (!artwork || artwork === "404 Not Found") return;
 
-    const ac = new AbortController();
+    let ac = new AbortController();
     let cancelled = false;
 
     fetch(artwork, { signal: ac.signal })
@@ -343,7 +346,7 @@ export function BigTrack({ id }) {
   }, [artwork]);
 
   useEffect(() => {
-    const ac = new AbortController();
+    let ac = new AbortController();
     setLoading(true);
 
     fetch(`/api/track-info?id=${id}&page=${page}&amount=20`, { signal: ac.signal })
@@ -438,12 +441,12 @@ export function BigTrack({ id }) {
 };
 
 export function MediumTrack({ type, id, artwork, title, subtitle, link }) {
-  const [imageSrc, setImageSrc] = useState(placeholderImage);
+  let [imageSrc, setImageSrc] = useState(placeholderImage);
 
   useEffect(() => {
     if (!artwork || artwork === "404 Not Found") return;
 
-    const ac = new AbortController();
+    let ac = new AbortController();
     let cancelled = false;
 
     fetch(artwork, { signal: ac.signal })
@@ -488,17 +491,13 @@ export function MediumTrack({ type, id, artwork, title, subtitle, link }) {
 };
 
 export function SmallTrack({ id, artwork, title, link }) {
-  const [imageSrc, setImageSrc] = useState(placeholderImage);
+  let [imageSrc, setImageSrc] = useState(placeholderImage);
 
   useEffect(() => {
     if (!artwork || artwork === "404 Not Found") return;
 
-    const ac = new AbortController();
-    let cancelled = false;
-
-    fetch(artwork, { signal: ac.signal })
+    fetch(artwork)
       .then((response) => {
-        if (ac.signal.aborted || cancelled) return;
         if (response.ok) {
           setImageSrc(artwork);
         } else {
@@ -506,14 +505,8 @@ export function SmallTrack({ id, artwork, title, link }) {
         }
       })
       .catch(() => {
-        if (ac.signal.aborted || cancelled) return;
         setImageSrc(placeholderImage);
       });
-
-    return () => {
-      cancelled = true;
-      ac.abort();
-    };
   }, [artwork]);
 
   return (
@@ -525,9 +518,9 @@ export function SmallTrack({ id, artwork, title, link }) {
         <img
           className="rounded-lg border-1"
           src={imageSrc}
+          alt="Artwork"
           width={30}
           height={30}
-          alt={id}
           onError={() => setImageSrc(placeholderImage)}
         />
       </Link>

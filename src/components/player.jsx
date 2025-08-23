@@ -35,47 +35,47 @@ import "ldrs/react/Ring.css";
 import { getStoredValue, formatTime } from "@/lib/utils";
 import { SmallTrack } from "@/components/track";
 
-// constants
-const INITIAL_VOLUME = 0.5;
-const MODES = {
+// letants
+let INITIAL_VOLUME = 0.5;
+let MODES = {
   NORMAL: 1,
   LOOP: 2,
   SINGLE: 3,
 };
 
 // SSR-safe guard
-const useMounted = () => {
-  const [mounted, setMounted] = useState(false);
+let useMounted = () => {
+  let [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   return mounted;
 };
 
 export let AudioPlayer = forwardRef((props, ref) => {
-  const mounted = useMounted();
+  let mounted = useMounted();
 
   // Track info
-  const [currentTrackId, setCurrentTrackId] = useState(null);
-  const [currentTrackTitle, setCurrentTrackTitle] = useState(null);
-  const [currentArtwork, setCurrentArtwork] = useState(null);
-  const [pause, setPause] = useState(true);
+  let [currentTrackId, setCurrentTrackId] = useState(null);
+  let [currentTrackTitle, setCurrentTrackTitle] = useState(null);
+  let [currentArtwork, setCurrentArtwork] = useState(null);
+  let [pause, setPause] = useState(true);
 
   // Refs
-  const waveformRef = useRef(null);
-  const wavesurferRef = useRef(null);
-  const volumeButtonRef = useRef(null);
-  const prevVolumeRef = useRef(INITIAL_VOLUME);
-  const stateRef = useRef();
-  const playerContainerRef = useRef(null);
-  const lastTimeUpdateRef = useRef(0);
+  let waveformRef = useRef(null);
+  let wavesurferRef = useRef(null);
+  let volumeButtonRef = useRef(null);
+  let prevVolumeRef = useRef(INITIAL_VOLUME);
+  let stateRef = useRef();
+  let playerContainerRef = useRef(null);
+  let lastTimeUpdateRef = useRef(0);
 
   // Memo
-  const songSrc = useMemo(
+  let songSrc = useMemo(
     () => (currentTrackId ? `/api/track?id=${currentTrackId}` : null),
     [currentTrackId]
   );
 
   // State
-  const [playerState, setPlayerState] = useState(() => ({
+  let [playerState, setPlayerState] = useState(() => ({
     // IMPORTANT: safe SSR defaults to avoid hydration mismatch
     volume: INITIAL_VOLUME,
     isSongLoaded: false,
@@ -85,7 +85,7 @@ export let AudioPlayer = forwardRef((props, ref) => {
     isLoading: false,
   }));
 
-  const { volume, isSongLoaded, currentTime, duration, mode, isLoading } =
+  let { volume, isSongLoaded, currentTime, duration, mode, isLoading } =
     playerState;
 
   // Hydrate persisted state after mount (no SSR reads of localStorage)
@@ -103,9 +103,9 @@ export let AudioPlayer = forwardRef((props, ref) => {
     stateRef.current = { ...playerState, pause };
   }, [playerState, pause]);
 
-  const setState = useCallback((update) => {
+  let setState = useCallback((update) => {
     setPlayerState((prev) => {
-      const newState = typeof update === "function" ? update(prev) : update;
+      let newState = typeof update === "function" ? update(prev) : update;
       return { ...prev, ...newState };
     });
   }, []);
@@ -118,7 +118,7 @@ export let AudioPlayer = forwardRef((props, ref) => {
     let cancelled = false;
 
     (async () => {
-      const WaveSurfer = (await import("wavesurfer.js")).default;
+      let WaveSurfer = (await import("wavesurfer.js")).default;
 
       ws = WaveSurfer.create({
         container: waveformRef.current,
@@ -138,7 +138,7 @@ export let AudioPlayer = forwardRef((props, ref) => {
 
       ws.setVolume(getStoredValue("audioPlayerVolume", INITIAL_VOLUME));
 
-      const handleReady = () => {
+      let handleReady = () => {
         if (cancelled) return;
         setState({
           isSongLoaded: true,
@@ -149,11 +149,11 @@ export let AudioPlayer = forwardRef((props, ref) => {
         ws.play();
       };
 
-      const handlePlay = () => setPause(false);
-      const handlePause = () => setPause(true);
+      let handlePlay = () => setPause(false);
+      let handlePause = () => setPause(true);
 
-      const handleTimeUpdate = (ct) => {
-        const now = performance.now();
+      let handleTimeUpdate = (ct) => {
+        let now = performance.now();
         // Throttle UI updates to ~10fps to reduce re-renders
         if (now - lastTimeUpdateRef.current > 100) {
           lastTimeUpdateRef.current = now;
@@ -161,8 +161,8 @@ export let AudioPlayer = forwardRef((props, ref) => {
         }
       };
 
-      const handleFinish = () => {
-        const currentMode = stateRef.current.mode;
+      let handleFinish = () => {
+        let currentMode = stateRef.current.mode;
 
         if (currentMode === MODES.SINGLE) {
           ws.seekTo(0);
@@ -190,7 +190,7 @@ export let AudioPlayer = forwardRef((props, ref) => {
       cancelled = true;
       try {
         wavesurferRef.current?.destroy();
-      } catch {}
+      } catch { }
       wavesurferRef.current = null;
     };
   }, [mounted, setState]);
@@ -211,7 +211,7 @@ export let AudioPlayer = forwardRef((props, ref) => {
 
   // Socket events
   useEffect(() => {
-    const handlePlayNow = (trackId, trackTitle) => {
+    let handlePlayNow = (trackId, trackTitle) => {
       setCurrentTrackId(null);
       setCurrentTrackTitle(null);
       setCurrentArtwork(null);
@@ -231,14 +231,14 @@ export let AudioPlayer = forwardRef((props, ref) => {
   // Fetch artwork
   useEffect(() => {
     if (!currentTrackId) return;
-    const ac = new AbortController();
+    let ac = new AbortController();
     let cancelled = false;
 
-    fetch(`/api/track-info?id=${currentTrackId}`, { signal: ac.signal })
+    fetch(`/api/track-info?id=${currentTrackId}&page=1&amount=1`, { signal: ac.signal })
       .then((r) => r.json())
       .then((data) => {
         if (cancelled || ac.signal.aborted) return;
-        const artwork = data.artwork_url || data.user?.avatar_url || null;
+        let artwork = data.artwork_url || data.user?.avatar_url || null;
         setCurrentArtwork(artwork || null);
       })
       .catch(() => {
@@ -255,7 +255,7 @@ export let AudioPlayer = forwardRef((props, ref) => {
   // Document title
   useEffect(() => {
     if (!currentTrackTitle) return;
-    const originalTitle = document.title;
+    let originalTitle = document.title;
     document.title = currentTrackTitle;
     return () => {
       document.title = originalTitle;
@@ -263,7 +263,7 @@ export let AudioPlayer = forwardRef((props, ref) => {
   }, [currentTrackTitle]);
 
   // Play/Pause toggle
-  const handlePlayPause = useCallback(() => {
+  let handlePlayPause = useCallback(() => {
     if (!wavesurferRef.current || !isSongLoaded) return;
     wavesurferRef.current.playPause();
   }, [isSongLoaded]);
@@ -281,7 +281,7 @@ export let AudioPlayer = forwardRef((props, ref) => {
       setState({ volume: muted ? 0 : prevVolumeRef.current }),
     setCurrentTime: (time) => {
       if (!wavesurferRef.current || !isSongLoaded) return;
-      const progress = duration > 0 ? time / duration : 0;
+      let progress = duration > 0 ? time / duration : 0;
       wavesurferRef.current.seekTo(progress);
       setState({ currentTime: time });
     },
@@ -289,7 +289,7 @@ export let AudioPlayer = forwardRef((props, ref) => {
 
   // Global key capture
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    let handleKeyDown = (e) => {
       if (
         !wavesurferRef.current ||
         !stateRef.current?.isSongLoaded ||
@@ -327,12 +327,12 @@ export let AudioPlayer = forwardRef((props, ref) => {
 
   // Volume wheel on button
   useEffect(() => {
-    const volumeButton = volumeButtonRef.current;
+    let volumeButton = volumeButtonRef.current;
     if (!volumeButton || !isSongLoaded) return;
 
-    const handleWheel = (e) => {
+    let handleWheel = (e) => {
       e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.05 : 0.05;
+      let delta = e.deltaY > 0 ? -0.05 : 0.05;
       setState((prev) => ({
         volume: Math.max(0, Math.min(1, prev.volume + delta)),
       }));
@@ -345,16 +345,16 @@ export let AudioPlayer = forwardRef((props, ref) => {
   // Persist volume (debounced)
   useEffect(() => {
     if (!mounted) return;
-    const id = setTimeout(() => {
+    let id = setTimeout(() => {
       try {
         localStorage.setItem("audioPlayerVolume", volume.toString());
-      } catch {}
+      } catch { }
     }, 150);
     return () => clearTimeout(id);
   }, [mounted, volume]);
 
   // Toggle mute
-  const handleToggleMute = useCallback(() => {
+  let handleToggleMute = useCallback(() => {
     if (!isSongLoaded) return;
     setState((prev) => ({
       volume: prev.volume > 0 ? 0 : prevVolumeRef.current || INITIAL_VOLUME,
@@ -362,7 +362,7 @@ export let AudioPlayer = forwardRef((props, ref) => {
   }, [isSongLoaded, setState]);
 
   // Slider rounding
-  const handleVolumeChange = useCallback(
+  let handleVolumeChange = useCallback(
     ([newVolume]) => {
       if (Math.abs(newVolume - 0.5) <= 0.05) {
         setState({ volume: 0.5 });
@@ -374,8 +374,8 @@ export let AudioPlayer = forwardRef((props, ref) => {
   );
 
   // Loop button memo
-  const { modeButtonProps, modeIcon } = useMemo(() => {
-    const isSpecialMode = mode === MODES.LOOP || mode === MODES.SINGLE;
+  let { modeButtonProps, modeIcon } = useMemo(() => {
+    let isSpecialMode = mode === MODES.LOOP || mode === MODES.SINGLE;
 
     return {
       modeButtonProps: {
@@ -398,7 +398,7 @@ export let AudioPlayer = forwardRef((props, ref) => {
     if (!mounted) return;
     try {
       localStorage.setItem("audioPlayerMode", mode.toString());
-    } catch {}
+    } catch { }
   }, [mounted, mode]);
 
   // UI render
@@ -464,11 +464,10 @@ export let AudioPlayer = forwardRef((props, ref) => {
 
           {/* Timestamps & Visualizer */}
           <div
-            className={`w-full flex items-center space-x-2 flex-grow ${
-              !isSongLoaded || duration === 0
+            className={`w-full flex items-center space-x-2 flex-grow ${!isSongLoaded || duration === 0
                 ? "pointer-events-none opacity-50"
                 : ""
-            }`}
+              }`}
           >
             {currentTrackId ? (
               <span
