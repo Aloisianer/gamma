@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Search } from "@/components/search";
 import { AudioPlayer } from "@/components/player";
 import { PageProvider } from "@/components/context/page";
+import { NavigationControls } from "@/components/navigation-controls";
 
 export let metadata = {
   title: "I need a name for this",
@@ -26,6 +27,7 @@ export default async function RootLayout({ children }) {
             <AppSidebar />
             <main className="w-full h-full">
               <AudioPlayer />
+              <NavigationControls />
               {children}
             </main>
           </SidebarProvider>
