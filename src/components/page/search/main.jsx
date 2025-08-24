@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Track } from "@/components/track"
-import { Button } from "@/components/ui/button"
-import { CommandInput, Command } from "@/components/ui/command"
-import { containsUsefulInfo } from "@/lib/utils"
+import { Track } from "@/components/track";
+import { Button } from "@/components/ui/button";
+import { CommandInput, Command } from "@/components/ui/command";
+import { containsUsefulInfo } from "@/lib/utils";
 
 export function Main({ data }) {
-    let [query, setQuery] = useState(data)
+    let [query, setQuery] = useState(data);
     let [results, setResults] = useState([]);
     let [page, setPage] = useState(1);
     let timerRef = useRef(null);
@@ -22,11 +22,6 @@ export function Main({ data }) {
     }, []);
 
     useEffect(() => {
-        if (query) {
-            window.history.replaceState(null, '', `/search?query=${encodeURIComponent(query)}`);
-        } else {
-            window.history.replaceState(null, '', `/search`);
-        }
         setPage(1);
     }, [query]);
 
@@ -36,7 +31,6 @@ export function Main({ data }) {
             return;
         }
 
-        // Clear previous timer and abort ongoing requests
         if (timerRef.current) clearTimeout(timerRef.current);
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
@@ -72,7 +66,6 @@ export function Main({ data }) {
             }
         };
     }, [query, page]);
-
 
     return (
         <div className="pb-8 w-full">
@@ -122,5 +115,5 @@ export function Main({ data }) {
                 ) : null}
             </div>
         </div>
-    )
-}
+    );
+};
