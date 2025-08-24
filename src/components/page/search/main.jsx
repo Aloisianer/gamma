@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Track } from "@/components/track";
+import { Track, LoadingTrack } from "@/components/track";
 import { Button } from "@/components/ui/button";
 import { CommandInput, Command } from "@/components/ui/command";
 import { containsUsefulInfo } from "@/lib/utils";
@@ -10,6 +10,7 @@ export function Main({ data }) {
     let [query, setQuery] = useState(data);
     let [results, setResults] = useState([]);
     let [page, setPage] = useState(1);
+    let [loading, setLoading] = useState(true);
     let timerRef = useRef(null);
     let abortControllerRef = useRef(null);
 
@@ -56,7 +57,10 @@ export function Main({ data }) {
                     if (!signal.aborted) {
                         setResults([]);
                     }
-                });
+                })
+                .finally(() => {
+                    setLoading(true);
+                })
         }, 150);
 
         return () => {
@@ -77,7 +81,7 @@ export function Main({ data }) {
                 />
             </Command>
             <div className="flex justify-center place-items-center ml-5 mr-5">
-                {results.length > 0 ? (
+                {results.length > 0 && !loading ? (
                     <div>
                         <div className="grid lg:grid-cols-7 md:grid-cols-5 grid-cols-2 gap-5">
                             {results.map((item) => (
@@ -110,9 +114,15 @@ export function Main({ data }) {
                             </Button>
                         </div>
                     </div>
-                ) : containsUsefulInfo(query) ? (
+                ) : containsUsefulInfo(query) && !loading ? (
                     <p>Nothing found</p>
-                ) : null}
+                ) : (
+                    <div className="grid lg:grid-cols-7 md:grid-cols-5 grid-cols-2 gap-5">
+                        {Array.from({ length: 49 }).map((_, index) => (
+                            <LoadingTrack key={index} />
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

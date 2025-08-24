@@ -7,11 +7,11 @@ import { AudioPlayer } from "@/components/player";
 import { PageProvider } from "@/components/context/page";
 
 export let metadata = {
-  title: "I need a name for this",
-  description: "An alternative SoundCloud FrontEnd (powered by SoundCloud)",
+  title: "Gamma",
+  description: "All-In-One Music App",
   openGraph: {
-    title: "I need a name for this",
-    description: "An alternative SoundCloud FrontEnd (powered by SoundCloud)",
+    title: "Gamma",
+    description: "All-In-One Music App",
     url: "https://sound.hackrland.dev",
     images: ["https://embed.com/embedimage.png"],
   }
