@@ -13,40 +13,41 @@ import {
     SidebarFooter,
     SidebarTrigger
 } from "@/components/ui/sidebar";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+    CommandSeparator,
+    CommandShortcut,
+} from "@/components/ui/command"
 
 import Link from "next/link";
 import * as Icon from "react-feather";
 import { usePageContext } from "./context/page";
 
-let items = [
-    { title: "Search", id: "search", icon: Icon.Search },
-    { title: "Settings", url: "settings", icon: Icon.Settings }
-];
-
 export function AppSidebar() {
     let { setPage } = usePageContext();
 
     return (
-        <Sidebar collapsible="icon">
+        <Sidebar>
+            <SidebarHeader className="m-1 rounded-xl">
+                <Command>
+                    <CommandInput placeholder="Search ..." />
+                </Command>
+            </SidebarHeader>
             <SidebarContent>
                 <SidebarGroup>
-                    <SidebarGroupLabel>I need a name for this</SidebarGroupLabel>
                     <SidebarGroupContent>
-                        <SidebarMenu className="ml-[0.49]">
-                            {items.map((item) => (
-                                <SidebarMenuItem key={item.title}>
-                                    <SidebarMenuButton tooltip={item.title} onClick={() => {
-                                        setPage({ name: item.id, data: "" })
-                                    }}>
-                                        <item.icon />
-                                        <p>{item.title}</p>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            ))}
-                        </SidebarMenu>
+
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>
+            <SidebarFooter>
+                
+            </SidebarFooter>
         </Sidebar>
     );
 }

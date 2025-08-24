@@ -7,6 +7,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Track, Comment } from "@/components/track";
+import { socket } from "@/socket";
 import * as Icon from "lucide-react";
 
 function Description({ text, tags }) {
