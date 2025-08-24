@@ -1,3 +1,5 @@
+"use client";
+
 import {
     Sidebar,
     SidebarContent,
@@ -14,15 +16,16 @@ import {
 
 import Link from "next/link";
 import * as Icon from "react-feather";
+import { usePageContext } from "./context/page";
 
 let items = [
-    { title: "Search", url: "/search", icon: Icon.Search },
-    { title: "Inbox", url: "#", icon: Icon.Inbox },
-    { title: "Calendar", url: "#", icon: Icon.Calendar },
-    { title: "Settings", url: "#", icon: Icon.Settings }
+    { title: "Search", id: "search", icon: Icon.Search },
+    { title: "Settings", url: "settings", icon: Icon.Settings }
 ];
 
 export function AppSidebar() {
+    let { setPage } = usePageContext();
+
     return (
         <Sidebar collapsible="icon">
             <SidebarContent>
@@ -32,11 +35,11 @@ export function AppSidebar() {
                         <SidebarMenu className="ml-[0.49]">
                             {items.map((item) => (
                                 <SidebarMenuItem key={item.title}>
-                                    <SidebarMenuButton tooltip={item.title} asChild>
-                                        <Link prefetch={true} href={item.url}>
-                                            <item.icon />
-                                            <span>{item.title}</span>
-                                        </Link>
+                                    <SidebarMenuButton tooltip={item.title} onClick={() => {
+                                        setPage({ name: item.id, data: "" })
+                                    }}>
+                                        <item.icon />
+                                        <p>{item.title}</p>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                             ))}

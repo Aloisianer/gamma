@@ -2,20 +2,16 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Track } from "@/components/track"
-import { useSearchParams } from "next/navigation";
-import { Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CommandInput, Command } from "@/components/ui/command"
 import { containsUsefulInfo } from "@/lib/utils"
 
-export default function Home() {
-    let [query, setQuery] = useState("")
+export function Main({ data }) {
+    let [query, setQuery] = useState(data)
     let [results, setResults] = useState([]);
     let [page, setPage] = useState(1);
     let timerRef = useRef(null);
     let abortControllerRef = useRef(null);
-    let searchParams = useSearchParams();
-    let rawQuery = searchParams.get("query");
 
     let loadNextPage = useCallback(() => {
         setPage(prev => prev + 1);
@@ -33,12 +29,6 @@ export default function Home() {
         }
         setPage(1);
     }, [query]);
-
-    useEffect(() => {
-        if (rawQuery) {
-            setQuery(rawQuery);
-        }
-    }, [rawQuery]);
 
     useEffect(() => {
         if (!containsUsefulInfo(query)) {

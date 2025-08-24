@@ -4,7 +4,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { Search } from "@/components/search";
 import { AudioPlayer } from "@/components/player";
-import SafeContainsPatch from "@/components/safe-contains-patch";
+import { PageProvider } from "@/components/context/page";
 
 export let metadata = {
   title: "I need a name for this",
@@ -21,16 +21,17 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={'antialiased dark w-full h-full'}>
-        <SafeContainsPatch />
-        <SidebarProvider>
-          <AppSidebar />
-          <main className="w-full h-full">
-            <AudioPlayer />
-            {children}
-          </main>
-        </SidebarProvider>
-        <Toaster />
-        <Search />
+        <PageProvider>
+          <SidebarProvider>
+            <AppSidebar />
+            <main className="w-full h-full">
+              <AudioPlayer />
+              {children}
+            </main>
+          </SidebarProvider>
+          <Toaster />
+          <Search />
+        </PageProvider>
       </body>
     </html>
   );

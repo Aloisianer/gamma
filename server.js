@@ -166,7 +166,6 @@ app.prepare().then(async () => {
       for (let i = 0; i < page; i++) {
         try {
           let response = await fetch(`${currentCommentUrl}&client_id=${clientId}`);
-          console.log(`${currentCommentUrl}&client_id=${clientId}`)
 
           if (!response.ok) {
             res.status(response.status).send(response.text())

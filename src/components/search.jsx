@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button"
 import { containsUsefulInfo } from "@/lib/utils"
+import { usePageContext } from "./context/page";
 
 export function Search() {
     let [open, setOpen] = useState(false);
@@ -20,6 +21,7 @@ export function Search() {
     let [query, setQuery] = useState('');
     let [loading, setLoading] = useState(false);
     let [page, setPage] = useState(1);
+    let pageContext = usePageContext();
     let timerRef = useRef(null);
     let abortControllerRef = useRef(null);
     let linkRef = useRef(null);
@@ -99,10 +101,8 @@ export function Search() {
 
     let handleEnter = useCallback((e) => {
         if (e.key === "Enter" && containsUsefulInfo(query)) {
-            if (linkRef.current) {
-                linkRef.current.click();
-            }
             setOpen(false);
+            pageContext.setPage({ name: "search", data: query });
         }
     }, [query]);
 
@@ -128,18 +128,6 @@ export function Search() {
                 onValueChange={setQuery}
                 onKeyDown={handleEnter}
             />
-            {containsUsefulInfo(query) ? (
-                <Link
-                    prefetch={true}
-                    href={`/search?query=${encodeURIComponent(query)}`}
-                    ref={linkRef}
-                    aria-hidden
-                    tabIndex={-1}
-                    style={{ display: 'none' }}
-                >
-                    go
-                </Link>
-            ) : null}
             <CommandList className={hasResults ? "max-h-[70vh]" : undefined}>
                 {results.length > 0 ? (
                     <div>

@@ -2,14 +2,11 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { Track } from "@/components/track"
-import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button"
 
-export default function Home() {
+export function Main({ data }) {
     let [results, setResults] = useState([]);
     let [page, setPage] = useState(1);
-    let searchParams = useSearchParams();
-    let id = searchParams.get("id");
 
     let loadNextPage = useCallback(() => {
         setPage(prev => prev + 1);
@@ -21,7 +18,7 @@ export default function Home() {
 
     useEffect(() => {
         const ac = new AbortController();
-        fetch(`/api/user-playlists?page=${page}&amount=49&id=${id}`, { signal: ac.signal })
+        fetch(`/api/user-playlists?page=${page}&amount=49&id=${data}`, { signal: ac.signal })
             .then(res => {
                 if (!res.ok) throw new Error('Failed to fetch');
                 return res.json();
@@ -36,7 +33,7 @@ export default function Home() {
             });
 
         return () => { ac.abort(); };
-    }, [id, page]);
+    }, [data, page]);
 
 
     return (
