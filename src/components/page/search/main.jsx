@@ -59,7 +59,7 @@ export function Main({ data }) {
                     }
                 })
                 .finally(() => {
-                    setLoading(true);
+                    setLoading(false);
                 })
         }, 150);
 
@@ -80,20 +80,24 @@ export function Main({ data }) {
                     onValueChange={setQuery}
                 />
             </Command>
-            <div className="flex justify-center place-items-center ml-5 mr-5">
+            <div className="w-full px-5">
                 {results.length > 0 && !loading ? (
-                    <div>
-                        <div className="grid lg:grid-cols-7 md:grid-cols-5 grid-cols-2 gap-5">
+                    <div className="w-full">
+                        <div className="flex flex-wrap justify-center gap-5 w-full">
                             {results.map((item) => (
-                                <Track
+                                <div
                                     key={item.id}
-                                    id={item.id}
-                                    artwork={item.artwork}
-                                    title={item.title}
-                                    subtitle={item.creator}
-                                    link={item.link}
-                                    type={item.type}
-                                />
+                                    className="basis-1/2 md:basis-1/5 lg:basis-1/7"
+                                >
+                                    <Track
+                                        id={item.id}
+                                        artwork={item.artwork}
+                                        title={item.title}
+                                        subtitle={item.creator}
+                                        link={item.link}
+                                        type={item.type}
+                                    />
+                                </div>
                             ))}
                         </div>
                         <div className="flex justify-center place-items-center gap-5 mb-6 mt-3">
@@ -117,9 +121,11 @@ export function Main({ data }) {
                 ) : containsUsefulInfo(query) && !loading ? (
                     <p>Nothing found</p>
                 ) : (
-                    <div className="grid lg:grid-cols-7 md:grid-cols-5 grid-cols-2 gap-5">
+                    <div className="flex flex-wrap justify-center gap-5 w-full">
                         {Array.from({ length: 49 }).map((_, index) => (
-                            <LoadingTrack key={index} />
+                            <div key={index} className="basis-1/2 md:basis-1/5 lg:basis-1/7">
+                                <LoadingTrack />
+                            </div>
                         ))}
                     </div>
                 )}

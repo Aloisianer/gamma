@@ -45,7 +45,7 @@ export function Track({ type, id, artwork, title, subtitle, variant, link }) {
       .then((response) => {
         if (ac.signal.aborted || cancelled) return;
         if (response.ok) {
-          setImageSrc(artwork);
+          setImageSrc(artwork.replaceAll('large', 't500x500'));
         } else {
           setImageSrc(placeholderImage);
         }
@@ -65,51 +65,72 @@ export function Track({ type, id, artwork, title, subtitle, variant, link }) {
     <Card className={cn(variants({ variant }))}>
       <CardContent className="p-0">
         {type === "track" ? (
-          <img
-            src={imageSrc}
-            alt={title}
-            className="w-full max-h-50 min-h-10 object-cover cursor-pointer rounded-xl"
+          <div
+            className="relative w-40 h-40 min-h-10 max-h-40 rounded-xl overflow-hidden cursor-pointer mx-auto"
             onClick={() => socket.emit("play", id, title)}
-            onError={() => setImageSrc(placeholderImage)}
-          />
-        ) : null}
-        {type === "user" ? (
-          <div onClick={() => {
-            setPage({ name: "user", data: id })
-          }}>
+          >
             <img
               src={imageSrc}
               alt={title}
-              className="w-full p-3 max-h-50 min-h-10 object-cover cursor-pointer rounded-full"
+              className="absolute inset-0 w-full h-full object-cover"
               onError={() => setImageSrc(placeholderImage)}
             />
           </div>
         ) : null}
+        {type === "user" ? (
+          <div
+            onClick={() => {
+              setPage({ name: "user", data: id })
+            }}
+            className="cursor-pointer"
+          >
+            <div className="p-3">
+              <div className="relative w-40 h-40 min-h-10 max-h-40 rounded-full overflow-hidden mx-auto">
+                <img
+                  src={imageSrc}
+                  alt={title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  onError={() => setImageSrc(placeholderImage)}
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
         {type === "playlist" ? (
-          <div onClick={() => {
-            setPage({ name: "playlist", data: id })
-          }}>
+          <div
+            onClick={() => {
+              setPage({ name: "playlist", data: id })
+            }}
+            className="relative w-40 h-40 min-h-10 max-h-40 rounded-xl overflow-hidden cursor-pointer mx-auto"
+          >
             <img
               src={imageSrc}
               alt={title}
-              className="w-full max-h-50 min-h-10 object-cover cursor-pointer rounded-xl"
+              className="absolute inset-0 w-full h-full object-cover"
               onError={() => setImageSrc(placeholderImage)}
             />
           </div>
         ) : null}
         {type === "unknown" ? (
-          <img
-            src={imageSrc}
-            alt={title}
-            className="w-full max-h-50 min-h-10 object-cover cursor-pointer rounded-xl"
-            onError={() => setImageSrc(placeholderImage)}
-          />
+          <div className="relative w-40 h-40 min-h-10 max-h-40 rounded-xl overflow-hidden cursor-pointer mx-auto">
+            <img
+              src={imageSrc}
+              alt={title}
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={() => setImageSrc(placeholderImage)}
+            />
+          </div>
         ) : null}
         <div className="mt-2 text-center">
-          <CardTitle className="text-[15px] overflow-ellipsis truncated-text overflow-hidden whitespace-nowrap pl-2 pr-2">
-            <div onClick={() => {
-              setPage({ name: type, data: id })
-            }}>{title}</div>
+          <CardTitle className="text-[15px] pl-2 pr-2">
+            <div
+              className="truncate max-w-35 mx-auto"
+              onClick={() => {
+                setPage({ name: type, data: id })
+              }}
+            >
+              {title}
+            </div>
           </CardTitle>
           <CardDescription className="text-[12px] text-foreground/50 pb-2 overflow-ellipsis truncated-text overflow-hidden whitespace-nowrap pl-2 pr-2">
             {type === "user" && subtitle ? formatFollowers(subtitle) : subtitle}
@@ -120,17 +141,23 @@ export function Track({ type, id, artwork, title, subtitle, variant, link }) {
   );
 };
 
-export function LoadingTrack() {
+export function LoadingTrack({ variant = "default" }) {
   return (
-    <Card className={cn("bg-card border-border", "w-full")}>
+    <Card className={cn(variants({ variant }))}>
       <CardContent className="p-0">
-        <div className="relative w-full pb-[100%]">
-          <Skeleton className="absolute inset-0 w-full h-full bg-skeleton rounded-xl" />
+        {/* Image placeholder: fixed 1:1 square */}
+        <div className="relative w-40 h-40 min-h-10 max-h-40 rounded-xl overflow-hidden mx-auto">
+          <Skeleton className="absolute inset-0 w-full h-full" />
         </div>
 
-        <div className="mt-2 px-2 pb-2 space-y-2">
-          <Skeleton className="h-4 w-3/4 bg-skeleton rounded" />
-          <Skeleton className="h-3 w-1/2 bg-skeleton rounded" />
+        {/* Title + subtitle placeholders: mirror spacing/padding */}
+        <div className="mt-2 text-center">
+          <CardTitle className="text-[15px] overflow-ellipsis truncated-text overflow-hidden whitespace-nowrap pl-2 pr-2">
+            <Skeleton className="h-4 w-11/12" />
+          </CardTitle>
+          <CardDescription className="text-[12px] text-foreground/50 pb-2 overflow-ellipsis truncated-text overflow-hidden whitespace-nowrap pl-2 pr-2">
+            <Skeleton className="h-3 w-2/3" />
+          </CardDescription>
         </div>
       </CardContent>
     </Card>
@@ -225,7 +252,7 @@ export function MediumTrack({ type, id, artwork, title, subtitle, link }) {
       onClick={() => socket.emit("play", id, title)}
     >
       <p
-        className="text-[13px] overflow-ellipsis truncated-text overflow-hidden whitespace-nowrap pl-2 pr-2 min-w-15 max-w-40"
+        className="text-[13px] truncate px-2 min-w-15 max-w-20"
       >{title}</p>
       <img
         className="rounded-lg border-1"
@@ -264,7 +291,7 @@ export function SmallTrack({ id, artwork, title }) {
       setPage({ name: "track", data: id })
     }}>
       <p
-        className="text-[13px] overflow-ellipsis truncated-text overflow-hidden whitespace-nowrap pl-2 pr-2 min-w-15 max-w-40"
+        className="text-[13px] truncate pl-2 pr-2 min-w-15 max-w-32"
       >{title}</p>
       <img
         className="rounded-lg border-1"
